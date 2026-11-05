@@ -505,18 +505,20 @@ export function HousingPage() {
                     {visibleStudents.map((student) => {
                       const age = fullYears(student.birthDate);
                       const here = placed.has(student.applicationId);
+                      const canDrag = student.placeable || here;
+                      const dragProps = canDrag
+                        ? { draggable: true, onDragStart: (event: DragEvent) => onDragStart(event, student.applicationId) }
+                        : {};
                       return (
                         <tr
                           key={student.applicationId}
                           className={here ? "student-placed" : undefined}
-                          draggable={student.placeable || here}
-                          onDragStart={(event) => onDragStart(event, student.applicationId)}
                           title={student.placeBlock ?? (here ? "Уже на койке, можно перетащить на другую" : "Перетащите на койку")}
                         >
-                          <td>{student.name}</td>
-                          <td>{age == null ? "—" : age}</td>
-                          <td>{student.faculty || "—"}</td>
-                          <td>{student.city || "—"}</td>
+                          <td {...dragProps}>{student.name}</td>
+                          <td {...dragProps}>{age == null ? "—" : age}</td>
+                          <td {...dragProps}>{student.faculty || "—"}</td>
+                          <td {...dragProps}>{student.city || "—"}</td>
                         </tr>
                       );
                     })}

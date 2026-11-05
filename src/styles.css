@@ -376,7 +376,11 @@ tr:hover td { background: rgba(0, 85, 255, 0.06); }
 .fund-table { overflow: auto; border: 0; border-radius: 0; }
 .fund-table table { font-size: 0.8rem; }
 .fund-table th, .fund-table td { padding: 0.38rem 0.5rem; }
-.fund-table tr[draggable="true"] { cursor: grab; }
+.fund-table td[draggable="true"] {
+  cursor: grab;
+  user-select: none;
+  -webkit-user-drag: element;
+}
 .student-placed td { color: var(--muted); }
 .beds { display: flex; gap: 0.4rem; flex-wrap: wrap; }
 .bed {
