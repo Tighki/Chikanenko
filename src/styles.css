@@ -399,7 +399,15 @@ tr:hover td { background: rgba(0, 85, 255, 0.06); }
 .bed-drop.over { background: var(--brand-soft); }
 .bed-drop.taken { background: #f7f9ff; }
 .bed-drop.blocked { background: #fdecec; }
-.bed-person { display: flex; justify-content: space-between; gap: 0.5rem; font-size: 0.86rem; cursor: grab; }
+.bed-person {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.86rem;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
 .linkish {
   border: 0;
   background: transparent;
@@ -430,12 +438,35 @@ tr:hover td { background: rgba(0, 85, 255, 0.06); }
 .fund-table { overflow: auto; border: 0; border-radius: 0; }
 .fund-table table { font-size: 0.8rem; }
 .fund-table th, .fund-table td { padding: 0.38rem 0.5rem; }
-.fund-table td[draggable="true"] {
+.fund-drag-col { width: 2rem; padding: 0 !important; }
+.fund-drag-handle {
+  width: 2rem;
+  text-align: center;
+  vertical-align: middle;
+  color: var(--brand);
+  font-size: 1rem;
+  line-height: 1;
   cursor: grab;
   user-select: none;
-  -webkit-user-drag: element;
+  -webkit-user-select: none;
+  touch-action: none;
 }
+.fund-drag-handle:active { cursor: grabbing; }
+.fund-drag-handle.disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.fund-row-draggable .fund-drag-handle { background: #f4f8ff; }
+.fund-student-status {
+  font-size: 0.72rem;
+  color: var(--muted);
+  max-width: 7rem;
+  line-height: 1.25;
+}
+.fund-row-locked .fund-student-status { color: #a65; }
 .student-placed td { color: var(--muted); }
+.student-placed .fund-student-status { color: var(--good); }
 .beds { display: flex; gap: 0.4rem; flex-wrap: wrap; }
 .bed {
   min-width: 4.4rem;

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type DragEvent, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type DragEvent, type FormEvent, type MouseEvent } from "react";
 import { api } from "../../api";
 import { Banner, Button, Field, PageHead } from "../../components/ui";
 
@@ -399,6 +399,12 @@ export function HousingPage() {
   function onDragStart(event: DragEvent, applicationId: string) {
     event.dataTransfer.setData("text/plain", applicationId);
     event.dataTransfer.effectAllowed = "move";
+    const row = event.currentTarget.closest("tr");
+    if (row) event.dataTransfer.setDragImage(row, 16, 16);
+  }
+
+  function onDragHandleMouseDown(event: MouseEvent) {
+    if (event.button === 0) event.preventDefault();
   }
 
   const floorInfo = floorStats(rooms, floor);
@@ -508,7 +514,12 @@ export function HousingPage() {
                         ) : null}
                       </div>
                       {bed.occupant ? (
-                        <span className="bed-person" draggable onDragStart={(event) => onDragStart(event, bed.occupant!.applicationId)}>
+                        <span
+                          className="bed-person"
+                          draggable
+                          onMouseDown={onDragHandleMouseDown}
+                          onDragStart={(event) => onDragStart(event, bed.occupant!.applicationId)}
+                        >
                           {bed.occupant.name}
                           <button type="button" className="linkish" onClick={() => releaseStudent(bed.occupant!.applicationId)}>снять</button>
                         </span>
@@ -592,22 +603,34 @@ export function HousingPage() {
             <div className="table-wrap fund-table">
               <table>
                 <thead>
-                  <tr><th>ФИО</th><th>Возраст</th><th>Факультет</th><th>Город</th></tr>
+                  <tr><th className="fund-drag-col" aria-label="Перетаскивание" /><th>ФИО</th><th>Возраст</th><th>Факультет</th><th>Город</th><th>Статус</th></tr>
                 </thead>
                 <tbody>
                   {visibleStudents.map((student) => {
                     const age = fullYears(student.birthDate);
                     const here = placed.has(student.applicationId);
                     const canDrag = student.placeable || here;
-                    const dragProps = canDrag
-                      ? { draggable: true, onDragStart: (event: DragEvent) => onDragStart(event, student.applicationId) }
-                      : {};
+                    const status = here
+                      ? "На койке"
+                      : student.placeBlock
+                        ? student.placeBlock
+                        : "Можно селить";
                     return (
-                      <tr key={student.applicationId} className={here ? "student-placed" : undefined} title={student.placeBlock ?? (here ? "На койке — можно перетащить" : "Перетащите на койку")}>
-                        <td {...dragProps}>{student.name}</td>
-                        <td {...dragProps}>{age == null ? "—" : age}</td>
-                        <td {...dragProps}>{student.faculty || "—"}</td>
-                        <td {...dragProps}>{student.city || "—"}</td>
+                      <tr key={student.applicationId} className={here ? "student-placed" : canDrag ? "fund-row-draggable" : "fund-row-locked"}>
+                        <td
+                          className={`fund-drag-handle ${canDrag ? "" : "disabled"}`}
+                          title={canDrag ? "Перетащите на койку" : student.placeBlock ?? "Нельзя селить"}
+                          draggable={canDrag}
+                          onMouseDown={canDrag ? onDragHandleMouseDown : undefined}
+                          onDragStart={canDrag ? (event: DragEvent) => onDragStart(event, student.applicationId) : undefined}
+                        >
+                          {canDrag ? "⠿" : "—"}
+                        </td>
+                        <td>{student.name}</td>
+                        <td>{age == null ? "—" : age}</td>
+                        <td>{student.faculty || "—"}</td>
+                        <td>{student.city || "—"}</td>
+                        <td className="fund-student-status">{status}</td>
                       </tr>
                     );
                   })}
