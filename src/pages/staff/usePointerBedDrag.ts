@@ -8,6 +8,8 @@ type Options = {
 export function usePointerBedDrag(options: Options) {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [overBedKey, setOverBedKey] = useState("");
+  const [overPool, setOverPool] = useState(false);
+  const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
   const optionsRef = useRef(options);
   optionsRef.current = options;
 
@@ -17,15 +19,20 @@ export function usePointerBedDrag(options: Options) {
     document.body.classList.add("fund-pointer-dragging");
 
     function onMove(event: PointerEvent) {
+      setDragPos({ x: event.clientX, y: event.clientY });
       const target = document.elementFromPoint(event.clientX, event.clientY);
       const bed = target?.closest<HTMLElement>("[data-bed-key]");
+      const pool = target?.closest<HTMLElement>("[data-student-pool]");
       setOverBedKey(bed?.dataset.bedKey ?? "");
+      setOverPool(Boolean(pool) && !bed);
     }
 
     function finish(event: PointerEvent) {
       const applicationId = draggingId;
       setDraggingId(null);
       setOverBedKey("");
+      setOverPool(false);
+      setDragPos(null);
       document.body.classList.remove("fund-pointer-dragging");
 
       const target = document.elementFromPoint(event.clientX, event.clientY);
@@ -53,8 +60,9 @@ export function usePointerBedDrag(options: Options) {
   function beginDrag(applicationId: string, event: ReactPointerEvent) {
     if (event.button !== 0) return;
     event.preventDefault();
+    setDragPos({ x: event.clientX, y: event.clientY });
     setDraggingId(applicationId);
   }
 
-  return { draggingId, overBedKey, beginDrag };
+  return { draggingId, overBedKey, overPool, dragPos, beginDrag };
 }

@@ -364,7 +364,7 @@ export function HousingPage() {
     setError("");
   }
 
-  const { draggingId, overBedKey, beginDrag } = usePointerBedDrag({
+  const { draggingId, overBedKey, overPool, dragPos, beginDrag } = usePointerBedDrag({
     onDropOnBed: (applicationId, bedKey) => {
       const room = selectedRoomRef.current;
       if (!room) return;
@@ -422,6 +422,17 @@ export function HousingPage() {
 
   const floorInfo = floorStats(rooms, floor);
   const roomInfo = selectedRoom ? roomStats(selectedRoom) : null;
+  const draggingName = useMemo(() => {
+    if (!draggingId) return "";
+    const student = students.find((item) => item.applicationId === draggingId);
+    if (student) return student.name;
+    for (const room of rooms) {
+      for (const bed of room.beds) {
+        if (bed.occupant?.applicationId === draggingId) return bed.occupant.name;
+      }
+    }
+    return "Студент";
+  }, [draggingId, students, rooms]);
 
   return (
     <div className="stack">
@@ -450,7 +461,7 @@ export function HousingPage() {
               <strong>{buildingName}</strong>
               <span className="muted">{rooms.length} комн. · {rooms.reduce((sum, room) => sum + room.beds.length, 0)} коек</span>
             </div>
-            <div className="fund-board">
+            <div className={`fund-board${draggingId ? " fund-board-dragging" : ""}`}>
               <section className="fund-col">
                 <div className="fund-col-head">
                   <h3>Этажи</h3>
@@ -595,7 +606,7 @@ export function HousingPage() {
             </aside>
           </div>
 
-          <section className="fund-students" data-student-pool>
+          <section className={`fund-students${overPool ? " fund-drop-target" : ""}`} data-student-pool>
             <header className="fund-students-head">
               <h3>
                 Студенты
@@ -624,7 +635,7 @@ export function HousingPage() {
                     const status = here ? "На койке" : "Можно селить";
                     const active = draggingId === student.applicationId;
                     return (
-                      <tr key={student.applicationId} className={here ? "student-placed fund-row-draggable" : "fund-row-draggable"}>
+                      <tr key={student.applicationId} className={`${here ? "student-placed fund-row-draggable" : "fund-row-draggable"}${active ? " fund-row-source" : ""}`}>
                         <td
                           className={`fund-drag-handle ${active ? "dragging" : ""}`}
                           title="Зажмите и перетащите на койку"
@@ -647,6 +658,12 @@ export function HousingPage() {
           </section>
         </div>
       )}
+      {draggingId && dragPos ? (
+        <div className="fund-drag-ghost" style={{ left: dragPos.x, top: dragPos.y }}>
+          <span className="fund-drag-ghost-icon">⠿</span>
+          {draggingName}
+        </div>
+      ) : null}
     </div>
   );
 }
