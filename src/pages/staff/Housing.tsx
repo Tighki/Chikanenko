@@ -80,12 +80,12 @@ function roomsFromApi(building: Workspace["buildings"][number]): DraftRoom[] {
   }));
 }
 
-function makeRoom(floor: number, number: string, bedCount: number): DraftRoom {
+function makeRoom(floor: number, number: string, bedCount: number, gender: Gender = "MALE"): DraftRoom {
   return {
     key: nextKey(),
     number,
     floor,
-    gender: "MALE",
+    gender,
     accessible: false,
     closed: false,
     beds: Array.from({ length: bedCount }, (_, index) => ({
@@ -122,6 +122,19 @@ function snapshot(rooms: DraftRoom[]) {
   })));
 }
 
+function roomStats(room: DraftRoom) {
+  const free = room.beds.filter((bed) => !bed.occupant && !bed.blocked).length;
+  const taken = room.beds.filter((bed) => bed.occupant).length;
+  return { beds: room.beds.length, free, taken };
+}
+
+function floorStats(rooms: DraftRoom[], level: number) {
+  const onFloor = rooms.filter((room) => room.floor === level);
+  const beds = onFloor.reduce((sum, room) => sum + room.beds.length, 0);
+  const taken = onFloor.reduce((sum, room) => sum + room.beds.filter((bed) => bed.occupant).length, 0);
+  return { rooms: onFloor.length, beds, free: beds - taken };
+}
+
 export function HousingPage() {
   const [buildings, setBuildings] = useState<Workspace["buildings"]>([]);
   const [students, setStudents] = useState<Student[]>([]);
@@ -151,8 +164,9 @@ export function HousingPage() {
     setBuildingId(building.id);
     setRooms(nextRooms);
     setSaved(snapshot(nextRooms));
-    setFloor(nextRooms[0]?.floor ?? 1);
-    setRoomKey(nextRooms[0]?.key ?? "");
+    const firstFloor = nextRooms.length ? Math.min(...nextRooms.map((room) => room.floor)) : 1;
+    setFloor(firstFloor);
+    setRoomKey(nextRooms.find((room) => room.floor === firstFloor)?.key ?? nextRooms[0]?.key ?? "");
   }
 
   function load(preferredId = buildingId) {
@@ -167,16 +181,19 @@ export function HousingPage() {
 
   const dirty = snapshot(rooms) !== saved;
   const floors = useMemo(() => {
-    const maxFloor = rooms.reduce((max, room) => Math.max(max, room.floor), 1);
-    return Array.from({ length: maxFloor }, (_, index) => index + 1);
+    if (rooms.length === 0) return [1];
+    return [...new Set(rooms.map((room) => room.floor))].sort((left, right) => left - right);
   }, [rooms]);
-  const floorRooms = rooms.filter((room) => room.floor === floor).sort((left, right) => left.number.localeCompare(right.number, "ru", { numeric: true }));
-  const selectedRoom = rooms.find((room) => room.key === roomKey) ?? floorRooms[0];
+  const floorRooms = rooms
+    .filter((room) => room.floor === floor)
+    .sort((left, right) => left.number.localeCompare(right.number, "ru", { numeric: true }));
+  const selectedRoom = roomKey ? rooms.find((room) => room.key === roomKey) ?? null : null;
   const placed = new Set(rooms.flatMap((room) => room.beds.flatMap((bed) => (bed.occupant ? [bed.occupant.applicationId] : []))));
   const visibleStudents = students.filter((student) => {
     const text = `${student.name} ${student.faculty} ${student.city}`.toLowerCase();
     return text.includes(query.trim().toLowerCase());
   });
+  const buildingName = buildings.find((item) => item.id === buildingId)?.name ?? "Общежитие";
 
   function replaceRoom(next: DraftRoom) {
     setRooms((current) => current.map((room) => (room.key === next.key ? next : room)));
@@ -189,75 +206,113 @@ export function HousingPage() {
     }));
   }
 
-  function setFloorCount(count: number) {
-    const next = Math.min(30, Math.max(1, count));
-    const highest = floors[floors.length - 1] ?? 1;
-    if (next < highest) {
-      const doomed = rooms.filter((room) => room.floor > next && room.beds.some((bed) => bed.occupant));
-      if (doomed.length > 0) {
-        setError("На убираемых этажах есть студенты. Сначала снимите их с коек.");
-        return;
-      }
-      setError("");
-      const remaining = rooms.filter((room) => room.floor <= next);
-      setRooms(remaining);
-      setFloor(Math.min(floor, next));
-      return;
-    }
-    if (next > highest) {
-      let created = [...rooms];
-      for (let level = highest + 1; level <= next; level += 1) {
-        created = [...created, makeRoom(level, nextRoomNumber(created), 2)];
-      }
-      setRooms(created);
-      setFloor(next);
-      setRoomKey(created[created.length - 1]?.key ?? "");
-    }
-    setError("");
+  function hasOccupants(target: DraftRoom[]) {
+    return target.some((room) => room.beds.some((bed) => bed.occupant));
   }
 
-  function setRoomCount(count: number) {
-    const next = Math.min(40, Math.max(0, count));
-    const current = floorRooms;
-    if (next < current.length) {
-      const removed = current.slice(next);
-      if (removed.some((room) => room.beds.some((bed) => bed.occupant))) {
-        setError("В убираемых комнатах есть студенты. Сначала снимите их с коек.");
-        return;
-      }
-      const removedKeys = new Set(removed.map((room) => room.key));
-      setRooms(rooms.filter((room) => !removedKeys.has(room.key)));
-      setRoomKey(current[Math.max(0, next - 1)]?.key ?? "");
-      setError("");
-      return;
-    }
-    let created = [...rooms];
-    for (let index = current.length; index < next; index += 1) {
-      created = [...created, makeRoom(floor, nextRoomNumber(created), selectedRoom?.beds.length || 2)];
-    }
-    setRooms(created);
-    setRoomKey(created[created.length - 1]?.key ?? roomKey);
+  function addFloor() {
     setError("");
+    const nextLevel = floors.length ? Math.max(...floors) + 1 : 1;
+    const room = makeRoom(nextLevel, nextRoomNumber(rooms), 2);
+    setRooms([...rooms, room]);
+    setFloor(nextLevel);
+    setRoomKey(room.key);
   }
 
-  function setBedCount(count: number) {
-    if (!selectedRoom) return;
-    const next = Math.min(8, Math.max(1, count));
-    if (next < selectedRoom.beds.length) {
-      const removed = selectedRoom.beds.slice(next);
-      if (removed.some((bed) => bed.occupant)) {
-        setError("На убираемых койках есть студенты. Сначала перетащите их обратно в список.");
-        return;
+  function removeFloor(level: number) {
+    const onFloor = rooms.filter((room) => room.floor === level);
+    if (onFloor.length === 0) return;
+    if (hasOccupants(onFloor)) {
+      setError("На этаже есть заселённые койки. Сначала снимите студентов.");
+      return;
+    }
+    setError("");
+    const next = rooms.filter((room) => room.floor !== level);
+    setRooms(next);
+    const nextFloors = [...new Set(next.map((room) => room.floor))].sort((left, right) => left - right);
+    const fallback = nextFloors[0] ?? 1;
+    setFloor(fallback);
+    setRoomKey(next.find((room) => room.floor === fallback)?.key ?? "");
+  }
+
+  function addRoom(onLevel = floor) {
+    setError("");
+    const template = selectedRoom && selectedRoom.floor === onLevel ? selectedRoom : floorRooms[0];
+    const gender = template?.gender ?? "MALE";
+    const bedCount = template?.beds.length ?? 2;
+    const room = makeRoom(onLevel, nextRoomNumber(rooms), bedCount, gender);
+    setRooms([...rooms, room]);
+    setFloor(onLevel);
+    setRoomKey(room.key);
+  }
+
+  function removeRoom(key: string) {
+    const room = rooms.find((item) => item.key === key);
+    if (!room) return;
+    if (room.beds.some((bed) => bed.occupant)) {
+      setError("В комнате есть студент. Сначала снимите его с койки.");
+      return;
+    }
+    setError("");
+    const next = rooms.filter((item) => item.key !== key);
+    setRooms(next);
+    if (roomKey === key) {
+      const fallback = next.find((item) => item.floor === room.floor) ?? next[0];
+      setRoomKey(fallback?.key ?? "");
+      if (fallback) setFloor(fallback.floor);
+    }
+  }
+
+  function duplicateNumber(number: string, floorLevel: number, exceptKey?: string) {
+    return rooms.some((room) => room.floor === floorLevel && room.number === number && room.key !== exceptKey);
+  }
+
+  function patchRoom(key: string, patch: Partial<DraftRoom>) {
+    const room = rooms.find((item) => item.key === key);
+    if (!room) return;
+    const next = { ...room, ...patch };
+    if (patch.number != null && duplicateNumber(patch.number.trim(), next.floor, key)) {
+      setError(`Комната ${patch.number} уже есть на этаже ${next.floor}`);
+      return;
+    }
+    if (patch.gender && patch.gender !== room.gender) {
+      const mismatched = room.beds.filter((bed) => bed.occupant?.gender && bed.occupant.gender !== patch.gender);
+      if (mismatched.length > 0) {
+        next.beds = next.beds.map((bed) => (bed.occupant?.gender && bed.occupant.gender !== patch.gender ? { ...bed, occupant: null } : bed));
+        setMessage("Студенты другого пола сняты с коек. Не забудьте сохранить.");
       }
     }
-    const beds = Array.from({ length: next }, (_, index) => selectedRoom.beds[index] ?? {
-      key: nextKey(),
-      number: index + 1,
-      blocked: false,
-      occupant: null,
+    if (patch.floor != null && patch.floor !== room.floor && duplicateNumber(next.number, patch.floor, key)) {
+      setError(`На этаже ${patch.floor} уже есть комната ${next.number}`);
+      return;
+    }
+    setError("");
+    replaceRoom(next);
+    if (patch.floor != null) setFloor(patch.floor);
+  }
+
+  function addBed(key: string) {
+    const room = rooms.find((item) => item.key === key);
+    if (!room || room.beds.length >= 8) return;
+    replaceRoom({
+      ...room,
+      beds: [...room.beds, { key: nextKey(), number: room.beds.length + 1, blocked: false, occupant: null }],
     });
-    replaceRoom({ ...selectedRoom, beds: beds.map((bed, index) => ({ ...bed, number: index + 1 })) });
+  }
+
+  function removeBed(key: string) {
+    const room = rooms.find((item) => item.key === key);
+    if (!room || room.beds.length <= 1) return;
+    const last = room.beds[room.beds.length - 1];
+    if (last.occupant) {
+      setError("Сначала снимите студента с последней койки.");
+      return;
+    }
     setError("");
+    replaceRoom({
+      ...room,
+      beds: room.beds.slice(0, -1).map((bed, index) => ({ ...bed, number: index + 1 })),
+    });
   }
 
   function placeStudent(applicationId: string, targetRoom: DraftRoom, bedKey: string) {
@@ -284,10 +339,7 @@ export function HousingPage() {
     const cleared = clearOccupant(applicationId);
     setRooms(cleared.map((room) => room.key !== targetRoom.key ? room : {
       ...room,
-      beds: room.beds.map((item) => {
-        if (item.key !== bedKey) return item;
-        return { ...item, occupant };
-      }),
+      beds: room.beds.map((item) => (item.key === bedKey ? { ...item, occupant } : item)),
     }));
     setError("");
   }
@@ -309,7 +361,7 @@ export function HousingPage() {
           buildingId,
           rooms: rooms.map((room) => ({
             id: room.id,
-            number: room.number,
+            number: room.number.trim(),
             floor: room.floor,
             gender: room.gender,
             accessible: room.accessible,
@@ -349,10 +401,19 @@ export function HousingPage() {
     event.dataTransfer.effectAllowed = "move";
   }
 
+  const floorInfo = floorStats(rooms, floor);
+  const roomInfo = selectedRoom ? roomStats(selectedRoom) : null;
+
   return (
     <div className="stack">
-      <PageHead title="Жилой фонд" text="Слева этажи, комнаты и койки. Справа студенты: перетащите строку на свободную койку. Изменения записываются по кнопке «Сохранить».">
-        <Button onClick={save} disabled={!dirty || pending || !buildingId}>{pending ? "Сохраняем…" : "Сохранить"}</Button>
+      <PageHead
+        title="Жилой фонд"
+        text="Слева выберите этаж и комнату, справа перетащите студента на койку. Структуру меняйте кнопками «+» и панелью ниже, затем нажмите «Сохранить»."
+      >
+        <div className="row">
+          {dirty ? <span className="fund-dirty">Есть несохранённые изменения</span> : null}
+          <Button onClick={save} disabled={!dirty || pending || !buildingId}>{pending ? "Сохраняем…" : "Сохранить"}</Button>
+        </div>
       </PageHead>
       {error ? <Banner kind="error">{error}</Banner> : null}
       {message ? <Banner kind="ok">{message}</Banner> : null}
@@ -364,90 +425,67 @@ export function HousingPage() {
           <Button type="submit">Создать</Button>
         </form>
       ) : (
-        <>
-          <div className="fund-toolbar">
-            {buildings.length > 1 ? (
-              <Field label="Корпус">
-                <select value={buildingId} onChange={(event) => {
-                  const id = event.target.value;
-                  const building = buildings.find((item) => item.id === id);
-                  if (!building) return;
-                  const nextRooms = roomsFromApi(building);
-                  setBuildingId(id);
-                  setRooms(nextRooms);
-                  setSaved(snapshot(nextRooms));
-                  setFloor(nextRooms[0]?.floor ?? 1);
-                  setRoomKey(nextRooms[0]?.key ?? "");
-                }}>
-                  {buildings.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-                </select>
-              </Field>
-            ) : <strong>{buildings[0]?.name}</strong>}
-            <label className="stepper">Этажей
-              <input type="number" min={1} max={30} value={floors[floors.length - 1] ?? 1} onChange={(event) => setFloorCount(Number(event.target.value))} />
-            </label>
-            <label className="stepper">Комнат на этаже
-              <input type="number" min={0} max={40} value={floorRooms.length} onChange={(event) => setRoomCount(Number(event.target.value))} />
-            </label>
-            <label className="stepper">Коек в комнате
-              <input type="number" min={1} max={8} value={selectedRoom?.beds.length ?? 1} disabled={!selectedRoom} onChange={(event) => setBedCount(Number(event.target.value))} />
-            </label>
-            <label className="stepper">Пол комнаты
-              <select
-                value={selectedRoom?.gender ?? "MALE"}
-                disabled={!selectedRoom}
-                onChange={(event) => {
-                  if (!selectedRoom) return;
-                  const gender = event.target.value as Gender;
-                  const mismatched = selectedRoom.beds.filter((bed) => bed.occupant?.gender && bed.occupant.gender !== gender);
-                  replaceRoom({
-                    ...selectedRoom,
-                    gender,
-                    beds: selectedRoom.beds.map((bed) => (bed.occupant?.gender && bed.occupant.gender !== gender ? { ...bed, occupant: null } : bed)),
-                  });
-                  if (mismatched.length > 0) setMessage("Студенты другого пола сняты с коек этой комнаты. Сохраните, чтобы записать.");
-                }}
-              >
-                <option value="MALE">Мужской</option>
-                <option value="FEMALE">Женский</option>
-              </select>
-            </label>
-            <label className="check">
-              <input
-                type="checkbox"
-                checked={selectedRoom?.accessible ?? false}
-                disabled={!selectedRoom}
-                onChange={(event) => selectedRoom && replaceRoom({ ...selectedRoom, accessible: event.target.checked })}
-              />
-              Доступная среда
-            </label>
-          </div>
-          <div className="fund-layout">
+        <div className="fund-layout">
+          <div className="fund-left">
+            <div className="fund-board-head">
+              <strong>{buildingName}</strong>
+              <span className="muted">{rooms.length} комн. · {rooms.reduce((sum, room) => sum + room.beds.length, 0)} коек</span>
+            </div>
             <div className="fund-board">
               <section className="fund-col">
-                <h3>Этажи</h3>
+                <div className="fund-col-head">
+                  <h3>Этажи</h3>
+                  <button type="button" className="fund-icon-btn" title="Добавить этаж с одной комнатой" onClick={addFloor}>+</button>
+                </div>
                 <div className="fund-list">
-                  {floors.map((level) => (
-                    <button key={level} type="button" className={`fund-item ${level === floor ? "active" : ""}`} onClick={() => { setFloor(level); const first = rooms.find((room) => room.floor === level); setRoomKey(first?.key ?? ""); }}>
-                      <b>{level}</b>
-                      <span>{rooms.filter((room) => room.floor === level).length} комн.</span>
-                    </button>
-                  ))}
+                  {floors.map((level) => {
+                    const stats = floorStats(rooms, level);
+                    return (
+                      <button
+                        key={level}
+                        type="button"
+                        className={`fund-item ${level === floor && !roomKey ? "active" : level === floor ? "active-soft" : ""}`}
+                        onClick={() => {
+                          setFloor(level);
+                          setRoomKey("");
+                        }}
+                      >
+                        <b>Этаж {level}</b>
+                        <span>{stats.rooms} комн. · {stats.beds} коек</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </section>
               <section className="fund-col">
-                <h3>Комнаты</h3>
+                <div className="fund-col-head">
+                  <h3>Комнаты</h3>
+                  <button type="button" className="fund-icon-btn" title="Добавить комнату на выбранный этаж" onClick={() => addRoom(floor)}>+</button>
+                </div>
                 <div className="fund-list">
-                  {floorRooms.length === 0 ? <p className="fund-empty">На этаже нет комнат</p> : floorRooms.map((room) => (
-                    <button key={room.key} type="button" className={`fund-item ${room.key === selectedRoom?.key ? "active" : ""}`} onClick={() => setRoomKey(room.key)}>
-                      <b>{room.number}</b>
-                      <span>{room.gender === "MALE" ? "муж." : "жен."} · {room.beds.length} коек{room.accessible ? " · доступ" : ""}{room.closed ? " · закрыта" : ""}</span>
-                    </button>
-                  ))}
+                  {floorRooms.length === 0 ? (
+                    <div className="fund-empty">
+                      <p>На этаже {floor} пока нет комнат.</p>
+                      <Button variant="ghost" onClick={() => addRoom(floor)}>Добавить комнату</Button>
+                    </div>
+                  ) : floorRooms.map((room) => {
+                    const stats = roomStats(room);
+                    return (
+                      <button
+                        key={room.key}
+                        type="button"
+                        className={`fund-item ${room.key === selectedRoom?.key ? "active" : ""}`}
+                        onClick={() => { setRoomKey(room.key); setFloor(room.floor); }}
+                      >
+                        <b>№ {room.number}</b>
+                        <span>{room.gender === "MALE" ? "муж." : "жен."} · {stats.beds} коек · своб. {stats.free}{room.accessible ? " · доступ" : ""}{room.closed ? " · закрыта" : ""}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </section>
-              <section className="fund-col">
-                <h3>Койки</h3>
+              <section className="fund-col fund-col-beds">
+                <div className="fund-col-head"><h3>Койки</h3></div>
                 <div className="fund-list">
                   {selectedRoom ? selectedRoom.beds.map((bed) => (
                     <div
@@ -465,69 +503,119 @@ export function HousingPage() {
                         <b>Койка {bed.number}</b>
                         {!bed.occupant ? (
                           <button type="button" className="linkish" onClick={() => replaceRoom({ ...selectedRoom, beds: selectedRoom.beds.map((item) => item.key === bed.key ? { ...item, blocked: !item.blocked } : item) })}>
-                            {bed.blocked ? "Разблокировать" : "Блок"}
+                            {bed.blocked ? "Разблок." : "Блок"}
                           </button>
                         ) : null}
                       </div>
                       {bed.occupant ? (
-                        <span
-                          className="bed-person"
-                          draggable
-                          onDragStart={(event) => onDragStart(event, bed.occupant!.applicationId)}
-                        >
+                        <span className="bed-person" draggable onDragStart={(event) => onDragStart(event, bed.occupant!.applicationId)}>
                           {bed.occupant.name}
                           <button type="button" className="linkish" onClick={() => releaseStudent(bed.occupant!.applicationId)}>снять</button>
                         </span>
-                      ) : <span className="muted">{bed.blocked ? "заблокирована" : "свободна, перетащите студента"}</span>}
+                      ) : <span className="muted">{bed.blocked ? "заблокирована" : "перетащите студента"}</span>}
                     </div>
-                  )) : <p className="fund-empty">Выберите комнату</p>}
+                  )) : (
+                    <p className="fund-empty">Выберите комнату в средней колонке.</p>
+                  )}
                 </div>
               </section>
             </div>
-            <section
-              className="fund-students"
-              onDragOver={(event) => event.preventDefault()}
-              onDrop={(event) => {
-                event.preventDefault();
-                releaseStudent(event.dataTransfer.getData("text/plain"));
-              }}
-            >
-              <header className="fund-students-head">
-                <h3>Студенты</h3>
-                <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Поиск" />
-              </header>
-              <div className="table-wrap fund-table">
-                <table>
-                  <thead>
-                    <tr><th>ФИО</th><th>Возраст</th><th>Факультет</th><th>Город</th></tr>
-                  </thead>
-                  <tbody>
-                    {visibleStudents.map((student) => {
-                      const age = fullYears(student.birthDate);
-                      const here = placed.has(student.applicationId);
-                      const canDrag = student.placeable || here;
-                      const dragProps = canDrag
-                        ? { draggable: true, onDragStart: (event: DragEvent) => onDragStart(event, student.applicationId) }
-                        : {};
-                      return (
-                        <tr
-                          key={student.applicationId}
-                          className={here ? "student-placed" : undefined}
-                          title={student.placeBlock ?? (here ? "Уже на койке, можно перетащить на другую" : "Перетащите на койку")}
-                        >
-                          <td {...dragProps}>{student.name}</td>
-                          <td {...dragProps}>{age == null ? "—" : age}</td>
-                          <td {...dragProps}>{student.faculty || "—"}</td>
-                          <td {...dragProps}>{student.city || "—"}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </section>
+
+            <aside className="fund-inspector">
+              {selectedRoom ? (
+                <div className="fund-inspector-grid">
+                  <div>
+                    <h4>Комната № {selectedRoom.number}</h4>
+                    <p className="muted">Этаж {selectedRoom.floor} · {roomInfo?.beds ?? 0} коек · занято {roomInfo?.taken ?? 0}</p>
+                  </div>
+                  <div className="fund-inspector-fields">
+                    <Field label="Номер">
+                      <input value={selectedRoom.number} onChange={(event) => patchRoom(selectedRoom.key, { number: event.target.value })} />
+                    </Field>
+                    <Field label="Этаж">
+                      <select value={selectedRoom.floor} onChange={(event) => patchRoom(selectedRoom.key, { floor: Number(event.target.value) })}>
+                        {floors.map((level) => <option key={level} value={level}>{level}</option>)}
+                      </select>
+                    </Field>
+                    <Field label="Пол">
+                      <select value={selectedRoom.gender} onChange={(event) => patchRoom(selectedRoom.key, { gender: event.target.value as Gender })}>
+                        <option value="MALE">Мужской</option>
+                        <option value="FEMALE">Женский</option>
+                      </select>
+                    </Field>
+                  </div>
+                  <div className="fund-inspector-actions">
+                    <label className="check"><input type="checkbox" checked={selectedRoom.accessible} onChange={(event) => patchRoom(selectedRoom.key, { accessible: event.target.checked })} /> Доступная среда</label>
+                    <label className="check"><input type="checkbox" checked={selectedRoom.closed} onChange={(event) => patchRoom(selectedRoom.key, { closed: event.target.checked })} /> Комната закрыта</label>
+                  </div>
+                  <div className="fund-bed-tools">
+                    <span className="muted">Койки в комнате</span>
+                    <div className="row">
+                      <Button variant="ghost" onClick={() => removeBed(selectedRoom.key)} disabled={selectedRoom.beds.length <= 1}>− койка</Button>
+                      <Button variant="ghost" onClick={() => addBed(selectedRoom.key)} disabled={selectedRoom.beds.length >= 8}>+ койка</Button>
+                      <span className="muted">{selectedRoom.beds.length} из 8</span>
+                    </div>
+                  </div>
+                  <div className="fund-inspector-footer">
+                    <Button variant="danger" onClick={() => removeRoom(selectedRoom.key)}>Удалить комнату</Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="fund-inspector-grid">
+                  <div>
+                    <h4>Этаж {floor}</h4>
+                    <p className="muted">{floorInfo.rooms} комнат · {floorInfo.beds} коек · свободно {floorInfo.free}</p>
+                  </div>
+                  <p className="muted">Добавьте комнату на этом этаже или выберите комнату в списке, чтобы изменить номер, пол и число коек.</p>
+                  <div className="row">
+                    <Button onClick={() => addRoom(floor)}>Добавить комнату</Button>
+                    <Button variant="ghost" onClick={addFloor}>Добавить этаж</Button>
+                    <Button variant="danger" onClick={() => removeFloor(floor)} disabled={floorInfo.rooms === 0}>Удалить этаж</Button>
+                  </div>
+                </div>
+              )}
+            </aside>
           </div>
-        </>
+
+          <section
+            className="fund-students"
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => {
+              event.preventDefault();
+              releaseStudent(event.dataTransfer.getData("text/plain"));
+            }}
+          >
+            <header className="fund-students-head">
+              <h3>Студенты</h3>
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Поиск" />
+            </header>
+            <div className="table-wrap fund-table">
+              <table>
+                <thead>
+                  <tr><th>ФИО</th><th>Возраст</th><th>Факультет</th><th>Город</th></tr>
+                </thead>
+                <tbody>
+                  {visibleStudents.map((student) => {
+                    const age = fullYears(student.birthDate);
+                    const here = placed.has(student.applicationId);
+                    const canDrag = student.placeable || here;
+                    const dragProps = canDrag
+                      ? { draggable: true, onDragStart: (event: DragEvent) => onDragStart(event, student.applicationId) }
+                      : {};
+                    return (
+                      <tr key={student.applicationId} className={here ? "student-placed" : undefined} title={student.placeBlock ?? (here ? "На койке — можно перетащить" : "Перетащите на койку")}>
+                        <td {...dragProps}>{student.name}</td>
+                        <td {...dragProps}>{age == null ? "—" : age}</td>
+                        <td {...dragProps}>{student.faculty || "—"}</td>
+                        <td {...dragProps}>{student.city || "—"}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
       )}
     </div>
   );

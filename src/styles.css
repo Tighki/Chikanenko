@@ -203,7 +203,9 @@ option { background: var(--surface); }
 }
 .account .btn:hover { background: #e8edf4; border-color: #c5ceda; color: var(--ink); }
 .main { padding: 1.35rem 1.7rem 2.5rem; }
-.page-head { display: flex; justify-content: space-between; gap: 1rem; align-items: end; margin-bottom: 1.2rem; }
+.page-head { display: flex; justify-content: space-between; gap: 1rem; align-items: end; margin-bottom: 1.2rem; flex-wrap: wrap; }
+.page-head > :last-child:not(div) { display: flex; gap: 0.65rem; align-items: center; flex-wrap: wrap; }
+.fund-dirty { color: var(--warn); font-size: 0.85rem; font-weight: 600; }
 .page-head p { color: var(--muted); margin-top: 0.3rem; max-width: 68ch; }
 
 .cards {
@@ -288,36 +290,85 @@ tr:hover td { background: rgba(0, 85, 255, 0.06); }
 .banner-error { background: #fdecec; border-color: #f5c2c0; color: var(--bad); }
 .banner-ok { background: #e7f6ef; border-color: #b7e4cc; color: var(--good); }
 
-.fund-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem 1rem;
-  align-items: end;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 0.75rem 0.9rem;
-}
-.fund-toolbar .field { min-width: 10rem; }
-.stepper { display: grid; gap: 0.3rem; color: var(--muted); font-size: 0.82rem; }
-.stepper input, .stepper select { width: 5.5rem; padding: 0.4rem 0.45rem; }
 .fund-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
   gap: 0.75rem;
   align-items: stretch;
 }
+.fund-left {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+}
+.fund-board-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
 .fund-board {
   display: grid;
-  grid-template-columns: 6.2rem 9.2rem minmax(0, 1fr);
-  min-height: 32rem;
+  grid-template-columns: 7.5rem 10rem minmax(0, 1fr);
+  min-height: 22rem;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   overflow: hidden;
 }
-.fund-col { min-width: 0; display: flex; flex-direction: column; border-right: 1px solid var(--line); }
-.fund-col:last-child { border-right: 0; }
+.fund-col-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.55rem 0.45rem 0.7rem;
+  background: var(--field);
+  border-bottom: 1px solid var(--line);
+}
+.fund-col-head h3 {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.fund-icon-btn {
+  width: 1.65rem;
+  height: 1.65rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--brand);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+.fund-icon-btn:hover { background: var(--brand-soft); border-color: #c5d7ff; }
+.fund-inspector {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.85rem 1rem;
+}
+.fund-inspector h4 { margin: 0 0 0.25rem; font-size: 1rem; }
+.fund-inspector-grid { display: grid; gap: 0.75rem; }
+.fund-inspector-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+.fund-inspector-actions { display: flex; flex-wrap: wrap; gap: 1rem; }
+.fund-inspector-footer { display: flex; justify-content: flex-end; }
+.fund-bed-tools { display: grid; gap: 0.35rem; }
+.fund-item.active-soft { background: #f4f7ff; }
 .fund-col h3, .fund-students h3 {
   margin: 0;
   padding: 0.55rem 0.7rem;
@@ -328,6 +379,9 @@ tr:hover td { background: rgba(0, 85, 255, 0.06); }
   background: var(--field);
   border-bottom: 1px solid var(--line);
 }
+.fund-col-head + .fund-list { flex: 1; }
+.fund-col { min-width: 0; display: flex; flex-direction: column; border-right: 1px solid var(--line); }
+.fund-col:last-child { border-right: 0; }
 .fund-list { overflow: auto; }
 .fund-item, .bed-drop {
   width: 100%;
@@ -340,7 +394,7 @@ tr:hover td { background: rgba(0, 85, 255, 0.06); }
 .fund-item { cursor: pointer; display: grid; gap: 0.1rem; }
 .fund-item span, .bed-drop .muted { color: var(--muted); font-size: 0.75rem; }
 .fund-item.active { background: var(--brand-soft); }
-.fund-empty { margin: 0; padding: 0.8rem; color: var(--muted); font-size: 0.85rem; }
+.fund-empty { margin: 0; padding: 0.8rem; color: var(--muted); font-size: 0.85rem; display: grid; gap: 0.5rem; }
 .bed-drop { display: grid; gap: 0.25rem; min-height: 3.4rem; }
 .bed-drop.over { background: var(--brand-soft); }
 .bed-drop.taken { background: #f7f9ff; }
@@ -406,7 +460,7 @@ tr:hover td { background: rgba(0, 85, 255, 0.06); }
 
 @media (max-width: 980px) {
   .cards { grid-template-columns: 1fr 1fr; }
-  .grid-2, .grid-form, .topbar, .auth-screen, .fund-layout, .fund-board { grid-template-columns: 1fr; }
+  .grid-2, .grid-form, .topbar, .auth-screen, .fund-layout, .fund-board, .fund-inspector-fields { grid-template-columns: 1fr; }
   .span-2 { grid-column: auto; }
   .main { padding: 1rem; }
   .auth-screen { padding: 1.25rem; gap: 1.5rem; }
