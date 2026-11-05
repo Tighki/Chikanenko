@@ -6,13 +6,6 @@ import { api } from "../api";
 import { Logo } from "./Logo";
 import { Button } from "./ui";
 
-const applicantLinks = [
-  ["/app", "Обзор"],
-  ["/app/profile", "Анкета"],
-  ["/app/application", "Заявка"],
-  ["/app/notifications", "Уведомления"],
-];
-
 const staffLinks = [
   ["/staff", "Сводка"],
   ["/staff/applications", "Заявки"],
@@ -34,7 +27,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [unread, setUnread] = useState(0);
-  const links = user?.role === "APPLICANT" ? applicantLinks : staffLinks;
+  const links = staffLinks;
 
   useEffect(() => {
     api<{ unread: number }>("/api/notifications")
@@ -55,14 +48,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </Link>
         <nav className="nav">
           {links.map(([to, label]) => (
-            <NavLink key={to} to={to} end={to === "/app" || to === "/staff"}>
+            <NavLink key={to} to={to} end={to === "/staff"}>
               {label}
-              {to.endsWith("notifications") && unread > 0 ? ` ${unread}` : ""}
             </NavLink>
           ))}
-          {user.role !== "APPLICANT" ? (
-            <NavLink to="/staff/notifications">Уведомления{unread > 0 ? ` ${unread}` : ""}</NavLink>
-          ) : null}
+          <NavLink to="/staff/notifications">Уведомления{unread > 0 ? ` ${unread}` : ""}</NavLink>
           {user.role === "ADMIN"
             ? adminLinks.map(([to, label]) => (
                 <NavLink key={to} to={to}>

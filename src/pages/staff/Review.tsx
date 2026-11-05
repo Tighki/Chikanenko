@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api, downloadFile } from "../../api";
 import { CATEGORY_LABELS, DOCUMENT_LABELS, DOCUMENT_STATUS, GENDER_LABELS, STATUS_LABELS, formatDate, formatDistance, formatHome } from "../../labels";
@@ -48,6 +48,8 @@ export function ReviewPage() {
   const { id } = useParams();
   const [data, setData] = useState<ReviewData | null>(null);
   const [comment, setComment] = useState("");
+  const [docType, setDocType] = useState("PASSPORT");
+  const [docFile, setDocFile] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
@@ -76,6 +78,23 @@ export function ReviewPage() {
       load();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Не удалось обновить статус");
+    }
+  }
+
+  async function uploadDocument(event: FormEvent) {
+    event.preventDefault();
+    if (!docFile) return;
+    setError("");
+    const body = new FormData();
+    body.set("type", docType);
+    body.set("file", docFile);
+    try {
+      await api(`/api/staff/applications/${id}/documents`, { method: "POST", body });
+      setDocFile(null);
+      setMessage("Документ добавлен");
+      load();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Не удалось загрузить документ");
     }
   }
 
@@ -114,14 +133,14 @@ export function ReviewPage() {
           <p>Балл: {person.admissionScore}</p>
           <p>Льгота: {CATEGORY_LABELS[person.priorityCategory]}</p>
           <p>Статус: <Badge value={data.application.status} map={STATUS_LABELS} /></p>
-          {data.application.comment ? <p className="muted">Комментарий абитуриента: {data.application.comment}</p> : null}
+          {data.application.comment ? <p className="muted">Комментарий в заявке: {data.application.comment}</p> : null}
           {data.application.settlement ? <p>Направление {data.application.settlement.orderNumber}</p> : null}
         </article>
         <article className="panel-block stack">
           <h2>Решение</h2>
           {data.problems.map((problem) => <Banner key={problem} kind="error">{problem}</Banner>)}
           {data.missingDocuments.length ? <Banner>Не проверены: {data.missingDocuments.join(", ")}</Banner> : null}
-          <Field label="Комментарий сотруднику, его увидит абитуриент">
+          <Field label="Комментарий к решению">
             <textarea value={comment} onChange={(event) => setComment(event.target.value)} />
           </Field>
           <div className="row">
@@ -131,6 +150,17 @@ export function ReviewPage() {
           </div>
         </article>
       </section>
+      <form className="panel-block row" onSubmit={uploadDocument}>
+        <Field label="Документ из файла">
+          <select value={docType} onChange={(event) => setDocType(event.target.value)}>
+            {Object.entries(DOCUMENT_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+        </Field>
+        <Field label="Файл">
+          <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx" onChange={(event) => setDocFile(event.target.files?.[0] ?? null)} />
+        </Field>
+        <Button type="submit" disabled={!docFile}>Приложить</Button>
+      </form>
       <div className="table-wrap">
         <table>
           <thead><tr><th>Документ</th><th>Файл</th><th>Статус</th><th></th></tr></thead>

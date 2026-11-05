@@ -16,15 +16,14 @@ type AuthState = {
   user: SessionUser | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<SessionUser>;
-  register: (payload: { email: string; password: string; fullName: string; phone?: string }) => Promise<SessionUser>;
   logout: () => void;
   refresh: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthState | null>(null);
 
-export function homeFor(role: Role) {
-  return role === "APPLICANT" ? "/app" : "/staff";
+export function homeFor(_role: Role) {
+  return "/staff";
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -61,15 +60,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const data = await api<{ token: string; user: SessionUser }>("/api/auth/login", {
           method: "POST",
           body: JSON.stringify({ email, password }),
-        });
-        localStorage.setItem("token", data.token);
-        setUser(data.user);
-        return data.user;
-      },
-      register: async (payload) => {
-        const data = await api<{ token: string; user: SessionUser }>("/api/auth/register", {
-          method: "POST",
-          body: JSON.stringify(payload),
         });
         localStorage.setItem("token", data.token);
         setUser(data.user);

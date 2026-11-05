@@ -2,10 +2,6 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { homeFor, useAuth, type Role } from "./auth";
 import { Shell } from "./components/Shell";
 import { LoginPage } from "./pages/Login";
-import { RegisterPage } from "./pages/Register";
-import { ApplicantHome } from "./pages/applicant/Home";
-import { ProfilePage } from "./pages/applicant/Profile";
-import { ApplicationPage } from "./pages/applicant/Application";
 import { NotificationsPage } from "./pages/Notifications";
 import { StaffHome } from "./pages/staff/Dashboard";
 import { ApplicationsPage } from "./pages/staff/Applications";
@@ -39,11 +35,6 @@ export function App() {
   return (
     <Routes>
       <Route path="/login" element={<Guest><LoginPage /></Guest>} />
-      <Route path="/register" element={<Guest><RegisterPage /></Guest>} />
-      <Route path="/app" element={<Gate roles={["APPLICANT"]}><ApplicantHome /></Gate>} />
-      <Route path="/app/profile" element={<Gate roles={["APPLICANT"]}><ProfilePage /></Gate>} />
-      <Route path="/app/application" element={<Gate roles={["APPLICANT"]}><ApplicationPage /></Gate>} />
-      <Route path="/app/notifications" element={<Gate roles={["APPLICANT"]}><NotificationsPage /></Gate>} />
       <Route path="/staff" element={<Gate roles={["STAFF", "ADMIN"]}><StaffHome /></Gate>} />
       <Route path="/staff/applications" element={<Gate roles={["STAFF", "ADMIN"]}><ApplicationsPage /></Gate>} />
       <Route path="/staff/applications/:id" element={<Gate roles={["STAFF", "ADMIN"]}><ReviewPage /></Gate>} />

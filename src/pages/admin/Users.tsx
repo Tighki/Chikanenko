@@ -35,7 +35,7 @@ export function UsersPage() {
 
   return (
     <div className="stack">
-      <PageHead title="Пользователи" text="Сотрудников и администраторов создаёт только администратор. Абитуриенты регистрируются сами." />
+      <PageHead title="Пользователи" text="Здесь только сотрудники и администраторы. Студенты в этот список не входят: их загружают файлом." />
       {error ? <Banner kind="error">{error}</Banner> : null}
       {createdPassword ? <Banner kind="ok">Пользователь создан. Пароль: {createdPassword}</Banner> : null}
       <form className="panel-block grid-form" onSubmit={onSubmit}>

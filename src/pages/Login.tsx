@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { homeFor, useAuth } from "../auth";
 import { Logo } from "../components/Logo";
 import { Banner, Button, Field } from "../components/ui";
@@ -32,10 +32,10 @@ export function LoginPage() {
         <div>
           <Logo className="logo logo-hero" />
           <h1>Заселение в общежитие</h1>
-          <p>Система принимает заявки абитуриентов, проверяет льготы и распределяет свободные койки.</p>
+          <p>Сотрудник загружает список студентов файлом, проверяет документы и распределяет свободные койки.</p>
           <ol>
-            <li>Абитуриент заполняет анкету и прикладывает документы.</li>
-            <li>Сотрудник проверяет заявку и допускает её к распределению.</li>
+            <li>Файл заменяет выгрузку из 1С и создаёт карточки студентов.</li>
+            <li>Сотрудник проверяет документы и допускает заявку к распределению.</li>
             <li>Алгоритм предлагает места, сотрудник подтверждает заселение.</li>
           </ol>
         </div>
@@ -45,7 +45,7 @@ export function LoginPage() {
         <form className="panel stack" onSubmit={onSubmit}>
           <div>
             <h2>Вход</h2>
-            <p className="lede">Для абитуриента, сотрудника общежития и администратора.</p>
+            <p className="lede">Для сотрудника общежития и администратора.</p>
           </div>
           {error ? <Banner kind="error">{error}</Banner> : null}
           <Field label="Почта">
@@ -55,14 +55,10 @@ export function LoginPage() {
             <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" required />
           </Field>
           <Button type="submit" disabled={pending}>{pending ? "Входим…" : "Войти"}</Button>
-          <div>
-            Нет учётной записи? <Link to="/register">Регистрация абитуриента</Link>
-          </div>
           <div className="demo-accounts">
             <div>Демонстрация на защите</div>
             <div><code>admin@hostel.local</code> / Admin123</div>
             <div><code>staff@hostel.local</code> / Staff123</div>
-            <div><code>sokolov@hostel.local</code> / Student123</div>
           </div>
         </form>
       </section>
