@@ -7,6 +7,12 @@ export class ApiError extends Error {
   }
 }
 
+const apiOrigin = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
+
+export function apiUrl(path: string): string {
+  return `${apiOrigin}${path}`;
+}
+
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = localStorage.getItem("token");
   const headers = new Headers(options.headers);
@@ -14,7 +20,7 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   if (options.body && !(options.body instanceof FormData) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
-  const response = await fetch(path, { ...options, headers });
+  const response = await fetch(apiUrl(path), { ...options, headers });
   if (response.status === 204) return undefined as T;
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -29,7 +35,7 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
 
 export async function downloadFile(path: string, filename: string) {
   const token = localStorage.getItem("token");
-  const response = await fetch(path, {
+  const response = await fetch(apiUrl(path), {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
   if (!response.ok) {

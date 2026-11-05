@@ -1,11 +1,5 @@
 node_modules/
 dist/
-client/dist/
-server/dist/
 .env
-server/.env
-server/uploads/*
-!server/uploads/.gitkeep
-.pgdata/
 *.log
 .DS_Store
