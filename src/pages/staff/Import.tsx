@@ -35,6 +35,14 @@ export function ImportPage() {
       {error ? <Banner kind="error">{error}</Banner> : null}
       <form className="panel-block stack" onSubmit={onSubmit}>
         <input type="file" accept=".xlsx,.xls,.csv" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
+        <p className="muted import-samples">
+          Демо-файлы:{" "}
+          <a href="/samples/import/import-01-muzhskie.xlsx" download>мужские (6)</a>
+          {" · "}
+          <a href="/samples/import/import-02-zhenskie.xlsx" download>женские (6)</a>
+          {" · "}
+          <a href="/samples/import/import-03-lgoty-i-dopolnitelno.xlsx" download>льготы (5)</a>
+        </p>
         <div className="row">
           <Button type="submit" disabled={!file}>Загрузить список</Button>
           <Button type="button" variant="ghost" onClick={() => downloadFile("/api/import/template", "abiturienty.xlsx")}>Скачать шаблон</Button>
