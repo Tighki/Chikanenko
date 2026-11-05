@@ -13,6 +13,7 @@ export type PlanApplicant = {
   category: PriorityCategory;
   categoryTitle: string;
   submittedAt: Date | null;
+  distanceKm?: number | null;
   needsAccessible: boolean;
   documentsOk: boolean;
   documentProblem?: string;
@@ -40,6 +41,7 @@ export type PlanRow = {
   category: PriorityCategory;
   categoryTitle: string;
   score: number;
+  distanceKm: number | null;
   submittedAt: string | null;
   outcome: "SETTLED" | "WAITLIST" | "SKIPPED";
   reason: string;
@@ -82,6 +84,7 @@ export function buildSettlementPlan(
       category: applicant.category,
       categoryTitle: applicant.categoryTitle,
       score: applicant.score,
+      distanceKm: applicant.distanceKm ?? null,
       submittedAt: applicant.submittedAt ? applicant.submittedAt.toISOString() : null,
     };
 

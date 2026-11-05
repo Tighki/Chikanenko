@@ -225,6 +225,7 @@ option { background: var(--surface); }
   border: 0;
   border-radius: 0;
 }
+.cards.cards-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .stat b {
   display: block;
   font-size: 1.65rem;
@@ -319,5 +320,5 @@ tr:hover td { background: rgba(0, 85, 255, 0.06); }
   .nav a { min-height: 44px; display: inline-flex; align-items: center; }
 }
 @media (max-width: 640px) {
-  .cards { grid-template-columns: 1fr; }
+  .cards, .cards.cards-3 { grid-template-columns: 1fr; }
 }

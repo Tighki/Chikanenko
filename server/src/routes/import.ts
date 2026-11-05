@@ -6,6 +6,7 @@ import { prisma } from "../lib/prisma.js";
 import { asyncRoute, HttpError } from "../middleware/error.js";
 import { requireAuth, requireRoles } from "../middleware/auth.js";
 import { uploadSheet } from "../middleware/upload.js";
+import { distanceKmFromCity, institute } from "../domain/distance.js";
 import { fullName } from "../domain/labels.js";
 import { writeAudit } from "../services/audit.js";
 import type { Gender, PriorityCategory } from "@prisma/client";
@@ -16,6 +17,9 @@ type ImportRow = {
   birthDate: string;
   city: string;
   region: string;
+  street: string;
+  house: string;
+  apartment: string;
   faculty: string;
   specialty: string;
   score: string;
@@ -29,7 +33,13 @@ const headerMap: Record<string, keyof ImportRow> = {
   пол: "gender",
   "дата рождения": "birthDate",
   город: "city",
+  "населенный пункт": "city",
+  "населённый пункт": "city",
   регион: "region",
+  улица: "street",
+  дом: "house",
+  квартира: "apartment",
+  кв: "apartment",
   факультет: "faculty",
   направление: "specialty",
   балл: "score",
@@ -85,8 +95,8 @@ importRouter.use(requireAuth, requireRoles("STAFF", "ADMIN"));
 
 importRouter.get("/template", (_req, res) => {
   const sheet = XLSX.utils.aoa_to_sheet([
-    ["ФИО", "Пол", "Дата рождения", "Город", "Регион", "Факультет", "Направление", "Балл", "Категория", "Email", "Телефон"],
-    ["Иванов Иван Иванович", "м", "2008-05-01", "Тула", "Тульская область", "Институт информационных технологий", "Программная инженерия", 230, "иногородний", "ivanov@example.com", "+79001234567"],
+    ["ФИО", "Пол", "Дата рождения", "Город", "Регион", "Улица", "Дом", "Квартира", "Факультет", "Направление", "Балл", "Категория", "Email", "Телефон"],
+    ["Иванов Иван Иванович", "м", "2008-05-01", "Тула", "Тульская область", "ул. Ленина", "10", "4", "Институт информационных технологий", "Программная инженерия", 230, "иногородний", "ivanov@example.com", "+79001234567"],
   ]);
   const book = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(book, sheet, "Абитуриенты");
@@ -117,8 +127,8 @@ importRouter.post(
       if (!indexes.has(required)) throw new HttpError(400, "В шапке нужны колонки ФИО, Пол и Email");
     }
 
-    const created: { email: string; password: string; name: string }[] = [];
-    const updated: { email: string; name: string }[] = [];
+    const created: { email: string; password: string; name: string; distanceKm: number | null }[] = [];
+    const updated: { email: string; name: string; distanceKm: number | null }[] = [];
     const errors: { row: number; message: string }[] = [];
 
     for (let index = 1; index < rows.length; index += 1) {
@@ -136,12 +146,18 @@ importRouter.post(
         if (!parts.lastName || !parts.firstName) throw new Error("ФИО должно содержать фамилию и имя");
         const score = Number(read("score") || 0);
         if (!Number.isInteger(score) || score < 0 || score > 400) throw new Error("Балл должен быть целым от 0 до 400");
+        const city = read("city");
+        const distanceKm = distanceKmFromCity(city);
         const data = {
           ...parts,
           gender,
           birthDate: parseBirth(read("birthDate")),
-          city: read("city"),
+          city,
           region: read("region"),
+          street: read("street"),
+          house: read("house"),
+          apartment: read("apartment"),
+          distanceKm,
           faculty: read("faculty"),
           specialty: read("specialty"),
           admissionScore: score,
@@ -159,7 +175,7 @@ importRouter.post(
               user: { update: { fullName: fullName(data), phone } },
             },
           });
-          updated.push({ email, name: fullName(data) });
+          updated.push({ email, name: fullName(data), distanceKm });
         } else if (existing) {
           throw new Error("Пользователь без анкеты абитуриента");
         } else {
@@ -175,7 +191,7 @@ importRouter.post(
               applicant: { create: data },
             },
           });
-          created.push({ email, password, name: fullName(data) });
+          created.push({ email, password, name: fullName(data), distanceKm });
         }
       } catch (error) {
         errors.push({ row: rowNumber, message: error instanceof Error ? error.message : "Ошибка строки" });
@@ -187,6 +203,6 @@ importRouter.post(
       updated: updated.length,
       errors: errors.length,
     });
-    res.json({ created, updated, errors });
+    res.json({ created, updated, errors, institute });
   }),
 );

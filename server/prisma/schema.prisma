@@ -98,6 +98,10 @@ model Applicant {
   gender           Gender?
   city             String           @default("")
   region           String           @default("")
+  street           String           @default("")
+  house            String           @default("")
+  apartment        String           @default("")
+  distanceKm       Int?
   faculty          String           @default("")
   specialty        String           @default("")
   admissionScore   Int              @default(0)

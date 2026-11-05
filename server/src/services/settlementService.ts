@@ -47,6 +47,7 @@ export async function computePlan(db: Db, groupByFaculty: boolean): Promise<Plan
       gender: genderKnown ? person.gender! : "MALE",
       faculty: person.faculty,
       score: person.admissionScore,
+      distanceKm: person.distanceKm,
       priorityRank: rankByCategory.get(person.priorityCategory) ?? 99,
       category: person.priorityCategory,
       categoryTitle: rankTitle(rules, person.priorityCategory),

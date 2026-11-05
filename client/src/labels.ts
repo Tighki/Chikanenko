@@ -54,6 +54,18 @@ export function formatDateTime(value?: string | null) {
   return new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
 
+export function formatDistance(km?: number | null) {
+  if (km == null) return "нет в справочнике";
+  return `${km} км`;
+}
+
+export function formatHome(person: { city?: string; region?: string; street?: string; house?: string; apartment?: string }) {
+  const place = [person.street, person.house ? `д. ${person.house}` : "", person.apartment ? `кв. ${person.apartment}` : ""]
+    .filter(Boolean)
+    .join(", ");
+  return [person.city, person.region, place].filter(Boolean).join(", ");
+}
+
 export function dateInput(value?: string | null) {
   if (!value) return "";
   return value.slice(0, 10);

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { asyncRoute, HttpError } from "../middleware/error.js";
 import { requireAuth, requireRoles } from "../middleware/auth.js";
+import { institute } from "../domain/distance.js";
 import { missingDocumentLabels, fullName } from "../domain/labels.js";
 import { profileProblems } from "../domain/profile.js";
 import { notify, writeAudit } from "../services/audit.js";
@@ -89,6 +90,8 @@ staffRouter.get(
         submittedAt: item.submittedAt,
         name: fullName(item.applicant),
         email: item.applicant.user.email,
+        city: item.applicant.city,
+        distanceKm: item.applicant.distanceKm,
         faculty: item.applicant.faculty,
         specialty: item.applicant.specialty,
         score: item.applicant.admissionScore,
@@ -123,6 +126,7 @@ staffRouter.get(
       },
       problems: profileProblems(application.applicant),
       missingDocuments: missingDocumentLabels(application.applicant.priorityCategory, verified),
+      institute,
     });
   }),
 );

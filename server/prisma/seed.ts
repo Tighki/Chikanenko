@@ -3,6 +3,7 @@ import path from "node:path";
 import bcrypt from "bcryptjs";
 import { PrismaClient, type DocumentType, type PriorityCategory } from "@prisma/client";
 import { config } from "../src/config.ts";
+import { distanceKmFromCity } from "../src/domain/distance.ts";
 import { DOCUMENT_LABELS } from "../src/domain/labels.ts";
 
 const prisma = new PrismaClient();
@@ -23,6 +24,24 @@ type SeedPerson = {
   phone: string;
   status: "APPROVED" | "SUBMITTED";
   socialDoc?: "LARGE_FAMILY" | "LOW_INCOME";
+};
+
+const homes: Record<string, { street: string; house: string; apartment: string }> = {
+  Казань: { street: "ул. Баумана", house: "15", apartment: "8" },
+  Орёл: { street: "ул. Ленина", house: "22", apartment: "3" },
+  Самара: { street: "ул. Молодогвардейская", house: "151", apartment: "12" },
+  Воронеж: { street: "пр-т Революции", house: "18", apartment: "5" },
+  Пенза: { street: "ул. Московская", house: "73", apartment: "2" },
+  Рязань: { street: "ул. Почтовая", house: "51", apartment: "9" },
+  Белгород: { street: "пр-т Славы", house: "40", apartment: "16" },
+  Тамбов: { street: "ул. Советская", house: "112", apartment: "7" },
+  Ярославль: { street: "ул. Свободы", house: "20", apartment: "4" },
+  Кострома: { street: "пр-т Мира", house: "6", apartment: "11" },
+  Владимир: { street: "ул. Большая Московская", house: "33", apartment: "1" },
+  Иваново: { street: "пр-т Ленина", house: "94", apartment: "18" },
+  Тверь: { street: "ул. Советская", house: "14", apartment: "6" },
+  Курск: { street: "ул. Ленина", house: "67", apartment: "10" },
+  Брянск: { street: "пр-т Ленина", house: "29", apartment: "3" },
 };
 
 const it = "Институт информационных технологий";
@@ -182,6 +201,10 @@ async function main() {
             gender: item.gender,
             city: item.city,
             region: item.region,
+            street: homes[item.city]?.street ?? "",
+            house: homes[item.city]?.house ?? "",
+            apartment: homes[item.city]?.apartment ?? "",
+            distanceKm: distanceKmFromCity(item.city),
             faculty: item.faculty,
             specialty: item.specialty,
             admissionScore: item.score,

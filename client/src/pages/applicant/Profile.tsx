@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api } from "../../api";
-import { CATEGORY_LABELS, dateInput } from "../../labels";
+import { CATEGORY_LABELS, dateInput, formatDistance } from "../../labels";
 import { Banner, Button, Field, PageHead } from "../../components/ui";
 
 type Profile = {
@@ -11,6 +11,10 @@ type Profile = {
   gender: "MALE" | "FEMALE" | null;
   city: string;
   region: string;
+  street: string;
+  house: string;
+  apartment: string;
+  distanceKm: number | null;
   faculty: string;
   specialty: string;
   admissionScore: number;
@@ -26,6 +30,10 @@ const empty: Profile = {
   gender: "MALE",
   city: "",
   region: "",
+  street: "",
+  house: "",
+  apartment: "",
+  distanceKm: null,
   faculty: "",
   specialty: "",
   admissionScore: 0,
@@ -49,6 +57,10 @@ export function ProfilePage() {
           birthDate: dateInput(data.profile.birthDate),
           gender: data.profile.gender ?? "MALE",
           phone: data.profile.phone ?? "",
+          street: data.profile.street ?? "",
+          house: data.profile.house ?? "",
+          apartment: data.profile.apartment ?? "",
+          distanceKm: data.profile.distanceKm ?? null,
         });
       })
       .catch((reason) => setError(reason.message));
@@ -63,7 +75,8 @@ export function ProfilePage() {
     setError("");
     setMessage("");
     try {
-      await api("/api/applicant/profile", { method: "PUT", body: JSON.stringify(form) });
+      const saved = await api<{ profile: { distanceKm: number | null } }>("/api/applicant/profile", { method: "PUT", body: JSON.stringify(form) });
+      setForm((current) => ({ ...current, distanceKm: saved.profile.distanceKm }));
       setMessage("Анкета сохранена");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Не удалось сохранить");
@@ -90,6 +103,10 @@ export function ProfilePage() {
         <Field label="Телефон"><input value={form.phone ?? ""} onChange={(event) => set("phone", event.target.value)} disabled={locked} /></Field>
         <Field label="Город"><input value={form.city} onChange={(event) => set("city", event.target.value)} disabled={locked} required /></Field>
         <Field label="Регион"><input value={form.region} onChange={(event) => set("region", event.target.value)} disabled={locked} required /></Field>
+        <Field label="Улица"><input value={form.street} onChange={(event) => set("street", event.target.value)} disabled={locked} /></Field>
+        <Field label="Дом"><input value={form.house} onChange={(event) => set("house", event.target.value)} disabled={locked} /></Field>
+        <Field label="Квартира"><input value={form.apartment} onChange={(event) => set("apartment", event.target.value)} disabled={locked} /></Field>
+        <p className="muted span-2">Расстояние по прямой до института (Москва, ул. Студенческая, 1): {formatDistance(form.distanceKm)}. Пересчитывается при сохранении города.</p>
         <Field label="Факультет или институт"><input value={form.faculty} onChange={(event) => set("faculty", event.target.value)} disabled={locked} required /></Field>
         <Field label="Направление"><input value={form.specialty} onChange={(event) => set("specialty", event.target.value)} disabled={locked} required /></Field>
         <Field label="Вступительный балл"><input type="number" min={0} max={400} value={form.admissionScore} onChange={(event) => set("admissionScore", Number(event.target.value))} disabled={locked} required /></Field>

@@ -8,6 +8,7 @@ import { asyncRoute, HttpError } from "../middleware/error.js";
 import { requireAuth, requireRoles } from "../middleware/auth.js";
 import { uploadDocument } from "../middleware/upload.js";
 import { campaignIsOpen, missingDocumentLabels, requiredDocumentGroups, DOCUMENT_LABELS, CATEGORY_TITLES, fullName } from "../domain/labels.js";
+import { distanceKmFromCity } from "../domain/distance.js";
 import { isDocumentType, profileLocked, profileProblems } from "../domain/profile.js";
 import { writeAudit } from "../services/audit.js";
 import { buildDirectionPdf } from "../services/pdf.js";
@@ -20,6 +21,9 @@ const profileSchema = z.object({
   gender: z.enum(["MALE", "FEMALE"], { message: "Укажите пол" }),
   city: z.string().trim().min(1, "Укажите город").max(80),
   region: z.string().trim().min(1, "Укажите регион").max(120),
+  street: z.string().trim().max(120).optional().or(z.literal("")),
+  house: z.string().trim().max(20).optional().or(z.literal("")),
+  apartment: z.string().trim().max(20).optional().or(z.literal("")),
   faculty: z.string().trim().min(1, "Укажите факультет").max(160),
   specialty: z.string().trim().min(1, "Укажите направление").max(160),
   admissionScore: z.coerce.number().int("Балл должен быть целым").min(0, "Балл не меньше 0").max(400, "Балл не больше 400"),
@@ -107,6 +111,10 @@ applicantRouter.put(
         gender: body.gender,
         city: body.city,
         region: body.region,
+        street: body.street || "",
+        house: body.house || "",
+        apartment: body.apartment || "",
+        distanceKm: distanceKmFromCity(body.city),
         faculty: body.faculty,
         specialty: body.specialty,
         admissionScore: body.admissionScore,

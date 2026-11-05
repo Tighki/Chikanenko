@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api, downloadFile } from "../../api";
-import { CATEGORY_LABELS, DOCUMENT_LABELS, DOCUMENT_STATUS, GENDER_LABELS, STATUS_LABELS, formatDate } from "../../labels";
+import { CATEGORY_LABELS, DOCUMENT_LABELS, DOCUMENT_STATUS, GENDER_LABELS, STATUS_LABELS, formatDate, formatDistance, formatHome } from "../../labels";
 import { Badge, Banner, Button, Field, PageHead } from "../../components/ui";
 
 type DocumentItem = {
@@ -26,6 +26,10 @@ type ReviewData = {
       gender: string | null;
       city: string;
       region: string;
+      street: string;
+      house: string;
+      apartment: string;
+      distanceKm: number | null;
       faculty: string;
       specialty: string;
       admissionScore: number;
@@ -37,6 +41,7 @@ type ReviewData = {
   };
   problems: string[];
   missingDocuments: string[];
+  institute: { address: string };
 };
 
 export function ReviewPage() {
@@ -102,7 +107,8 @@ export function ReviewPage() {
         <article className="panel-block stack">
           <h2>Анкета</h2>
           <p>{GENDER_LABELS[person.gender || ""] || "Пол не указан"}, {formatDate(person.birthDate)}</p>
-          <p>{person.city}, {person.region}</p>
+          <p>{formatHome(person)}</p>
+          <p>До института ({data.institute.address}): {formatDistance(person.distanceKm)}</p>
           <p>{person.faculty}</p>
           <p>{person.specialty}</p>
           <p>Балл: {person.admissionScore}</p>

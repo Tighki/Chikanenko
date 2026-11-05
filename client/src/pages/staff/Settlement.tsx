@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api";
-import { GENDER_LABELS, formatDateTime } from "../../labels";
+import { GENDER_LABELS, formatDateTime, formatDistance } from "../../labels";
 import { Banner, Button, PageHead } from "../../components/ui";
 
 type Row = {
@@ -10,6 +10,7 @@ type Row = {
   gender: string;
   categoryTitle: string;
   score: number;
+  distanceKm: number | null;
   outcome: "SETTLED" | "WAITLIST" | "SKIPPED";
   reason: string;
   buildingName?: string;
@@ -96,20 +97,21 @@ export function SettlementPage() {
       </section>
       {plan ? (
         <>
-          <section className="cards">
+          <section className="cards cards-3">
             <article className="card stat"><span>Мест</span><b>{plan.settledCount}</b></article>
             <article className="card stat"><span>Очередь</span><b>{plan.waitlistCount}</b></article>
             <article className="card stat"><span>Пропуск</span><b>{plan.skippedCount}</b></article>
           </section>
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Абитуриент</th><th>Льгота</th><th>Балл</th><th>Результат</th><th>Место</th></tr></thead>
+              <thead><tr><th>Абитуриент</th><th>Льгота</th><th>Балл</th><th>До института</th><th>Результат</th><th>Место</th></tr></thead>
               <tbody>
                 {plan.rows.map((row) => (
                   <tr key={row.applicationId} className={`outcome-${row.outcome}`}>
                     <td>{row.fullName}<div className="muted">{row.faculty} · {GENDER_LABELS[row.gender]}</div></td>
                     <td>{row.categoryTitle}</td>
                     <td>{row.score}</td>
+                    <td>{formatDistance(row.distanceKm)}</td>
                     <td>{outcomeText[row.outcome]}<div className="muted">{row.reason}</div></td>
                     <td>{row.buildingName ? `${row.buildingName}, комн. ${row.roomNumber}, койка ${row.bedNumber}` : "нет"}</td>
                   </tr>

@@ -1,11 +1,13 @@
 import { useState, type FormEvent } from "react";
 import { api, downloadFile } from "../../api";
+import { formatDistance } from "../../labels";
 import { Banner, Button, PageHead } from "../../components/ui";
 
 type Result = {
-  created: { email: string; password: string; name: string }[];
-  updated: { email: string; name: string }[];
+  created: { email: string; password: string; name: string; distanceKm: number | null }[];
+  updated: { email: string; name: string; distanceKm: number | null }[];
   errors: { row: number; message: string }[];
+  institute: { address: string };
 };
 
 export function ImportPage() {
@@ -29,7 +31,7 @@ export function ImportPage() {
 
   return (
     <div className="stack">
-      <PageHead title="Импорт списка" text="Колонки: ФИО, Пол, Дата рождения, Город, Регион, Факультет, Направление, Балл, Категория, Email, Телефон. Совпадение по почте обновляет анкету." />
+      <PageHead title="Выгрузка приёмной комиссии" text="Студентов добавляет сотрудник. Колонки: ФИО, Пол, Дата рождения, Город, Регион, Улица, Дом, Квартира, Факультет, Направление, Балл, Категория, Email, Телефон. По городу считается расстояние по прямой до института (Москва, ул. Студенческая, 1). Совпадение по почте обновляет карточку." />
       {error ? <Banner kind="error">{error}</Banner> : null}
       <form className="panel-block stack" onSubmit={onSubmit}>
         <input type="file" accept=".xlsx,.xls,.csv" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
@@ -44,10 +46,10 @@ export function ImportPage() {
           {result.created.length > 0 ? (
             <div className="table-wrap">
               <table>
-                <thead><tr><th>Новый абитуриент</th><th>Почта</th><th>Временный пароль</th></tr></thead>
+                <thead><tr><th>Новый абитуриент</th><th>Почта</th><th>Временный пароль</th><th>До института</th></tr></thead>
                 <tbody>
                   {result.created.map((item) => (
-                    <tr key={item.email}><td>{item.name}</td><td>{item.email}</td><td>{item.password}</td></tr>
+                    <tr key={item.email}><td>{item.name}</td><td>{item.email}</td><td>{item.password}</td><td>{formatDistance(item.distanceKm)}</td></tr>
                   ))}
                 </tbody>
               </table>

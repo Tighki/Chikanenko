@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../api";
-import { CATEGORY_LABELS, GENDER_LABELS, STATUS_LABELS, formatDateTime } from "../../labels";
+import { CATEGORY_LABELS, GENDER_LABELS, STATUS_LABELS, formatDateTime, formatDistance } from "../../labels";
 import { Badge, Field, PageHead } from "../../components/ui";
 
 type Row = {
@@ -11,6 +11,8 @@ type Row = {
   name: string;
   email: string;
   faculty: string;
+  city: string;
+  distanceKm: number | null;
   score: number;
   category: string;
   gender: string | null;
@@ -30,7 +32,7 @@ export function ApplicationsPage() {
 
   return (
     <div className="stack">
-      <PageHead title="Заявки" text="Проверка документов, допуск к распределению или отказ с причиной." />
+      <PageHead title="Заявки" text="Проверка документов, допуск к распределению или отказ с причиной. Расстояние — по прямой от населённого пункта до института." />
       <div className="grid-form">
         <Field label="Статус">
           <select value={status} onChange={(event) => setStatus(event.target.value)}>
@@ -45,7 +47,7 @@ export function ApplicationsPage() {
       <div className="table-wrap">
         <table>
           <thead>
-            <tr><th>Абитуриент</th><th>Пол</th><th>Факультет</th><th>Балл</th><th>Льгота</th><th>Статус</th><th>Подана</th></tr>
+            <tr><th>Абитуриент</th><th>Пол</th><th>Факультет</th><th>До института</th><th>Балл</th><th>Льгота</th><th>Статус</th><th>Подана</th></tr>
           </thead>
           <tbody>
             {rows.map((row) => (
@@ -53,6 +55,7 @@ export function ApplicationsPage() {
                 <td><Link to={`/staff/applications/${row.id}`}>{row.name}</Link><div className="muted">{row.email}</div></td>
                 <td>{row.gender ? GENDER_LABELS[row.gender] : "нет"}</td>
                 <td>{row.faculty}</td>
+                <td>{formatDistance(row.distanceKm)}<div className="muted">{row.city}</div></td>
                 <td>{row.score}</td>
                 <td>{CATEGORY_LABELS[row.category]}</td>
                 <td><Badge value={row.status} map={STATUS_LABELS} /></td>
