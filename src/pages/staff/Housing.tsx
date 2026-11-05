@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState, type DragEvent, type FormEvent, type MouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { api } from "../../api";
 import { Banner, Button, Field, PageHead } from "../../components/ui";
+import { usePointerBedDrag } from "./usePointerBedDrag";
 
 type Gender = "MALE" | "FEMALE";
 type Occupant = { applicationId: string; name: string; gender: Gender | null };
@@ -149,8 +150,8 @@ export function HousingPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
-  const [overBed, setOverBed] = useState("");
   const [buildingForm, setBuildingForm] = useState({ name: "Общежитие", address: "ул. Студенческая, 1", gender: "MALE" });
+  const selectedRoomRef = useRef<DraftRoom | null>(null);
 
   function applyWorkspace(data: Workspace, preferredId = buildingId) {
     setBuildings(data.buildings);
@@ -190,6 +191,7 @@ export function HousingPage() {
     .filter((room) => room.floor === floor)
     .sort((left, right) => left.number.localeCompare(right.number, "ru", { numeric: true }));
   const selectedRoom = roomKey ? rooms.find((room) => room.key === roomKey) ?? null : null;
+  selectedRoomRef.current = selectedRoom;
   const placed = new Set(rooms.flatMap((room) => room.beds.flatMap((bed) => (bed.occupant ? [bed.occupant.applicationId] : []))));
   const visibleStudents = useMemo(() => {
     if (!selectedRoom) return [];
@@ -198,6 +200,7 @@ export function HousingPage() {
       const inThisRoom = selectedRoom.beds.some((bed) => bed.occupant?.applicationId === student.applicationId);
       if (!ADMITTED_STATUSES.has(student.status) && !inThisRoom) return false;
       if (student.gender !== selectedRoom.gender && !inThisRoom) return false;
+      if (!student.placeable && !inThisRoom) return false;
       if (q) {
         const text = `${student.name} ${student.faculty} ${student.city}`.toLowerCase();
         if (!text.includes(q)) return false;
@@ -361,6 +364,15 @@ export function HousingPage() {
     setError("");
   }
 
+  const { draggingId, overBedKey, beginDrag } = usePointerBedDrag({
+    onDropOnBed: (applicationId, bedKey) => {
+      const room = selectedRoomRef.current;
+      if (!room) return;
+      placeStudent(applicationId, room, bedKey);
+    },
+    onDropOnPool: (applicationId) => releaseStudent(applicationId),
+  });
+
   async function save() {
     if (!buildingId) return;
     setPending(true);
@@ -408,17 +420,6 @@ export function HousingPage() {
     }
   }
 
-  function onDragStart(event: DragEvent, applicationId: string) {
-    event.dataTransfer.setData("text/plain", applicationId);
-    event.dataTransfer.effectAllowed = "move";
-    const row = event.currentTarget.closest("tr");
-    if (row) event.dataTransfer.setDragImage(row, 16, 16);
-  }
-
-  function onDragHandleMouseDown(event: MouseEvent) {
-    if (event.button === 0) event.preventDefault();
-  }
-
   const floorInfo = floorStats(rooms, floor);
   const roomInfo = selectedRoom ? roomStats(selectedRoom) : null;
 
@@ -426,7 +427,7 @@ export function HousingPage() {
     <div className="stack">
       <PageHead
         title="Жилой фонд"
-        text="Выберите комнату — справа появятся только допущенные студенты нужного пола. Перетащите на койку, затем «Сохранить»."
+        text="Выберите комнату. Тяните студента за ⠿ на койку (зажать левую кнопку мыши), затем «Сохранить»."
       >
         <div className="row">
           {dirty ? <span className="fund-dirty">Есть несохранённые изменения</span> : null}
@@ -508,14 +509,8 @@ export function HousingPage() {
                   {selectedRoom ? selectedRoom.beds.map((bed) => (
                     <div
                       key={bed.key}
-                      className={`bed-drop ${bed.occupant ? "taken" : ""} ${bed.blocked ? "blocked" : ""} ${overBed === bed.key ? "over" : ""}`}
-                      onDragOver={(event) => { event.preventDefault(); setOverBed(bed.key); }}
-                      onDragLeave={() => setOverBed((current) => (current === bed.key ? "" : current))}
-                      onDrop={(event) => {
-                        event.preventDefault();
-                        setOverBed("");
-                        placeStudent(event.dataTransfer.getData("text/plain"), selectedRoom, bed.key);
-                      }}
+                      data-bed-key={bed.key}
+                      className={`bed-drop ${bed.occupant ? "taken" : ""} ${bed.blocked ? "blocked" : ""} ${overBedKey === bed.key ? "over" : ""}`}
                     >
                       <div className="spread">
                         <b>Койка {bed.number}</b>
@@ -526,13 +521,13 @@ export function HousingPage() {
                         ) : null}
                       </div>
                       {bed.occupant ? (
-                        <span
-                          className="bed-person"
-                          draggable
-                          onMouseDown={onDragHandleMouseDown}
-                          onDragStart={(event) => onDragStart(event, bed.occupant!.applicationId)}
-                        >
-                          {bed.occupant.name}
+                        <span className="bed-person">
+                          <span
+                            className="bed-person-drag"
+                            onPointerDown={(event) => beginDrag(bed.occupant!.applicationId, event)}
+                          >
+                            ⠿ {bed.occupant.name}
+                          </span>
                           <button type="button" className="linkish" onClick={() => releaseStudent(bed.occupant!.applicationId)}>снять</button>
                         </span>
                       ) : <span className="muted">{bed.blocked ? "заблокирована" : "перетащите студента"}</span>}
@@ -600,14 +595,7 @@ export function HousingPage() {
             </aside>
           </div>
 
-          <section
-            className="fund-students"
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={(event) => {
-              event.preventDefault();
-              releaseStudent(event.dataTransfer.getData("text/plain"));
-            }}
-          >
+          <section className="fund-students" data-student-pool>
             <header className="fund-students-head">
               <h3>
                 Студенты
@@ -633,22 +621,16 @@ export function HousingPage() {
                   {visibleStudents.map((student) => {
                     const age = fullYears(student.birthDate);
                     const here = placed.has(student.applicationId);
-                    const canDrag = student.placeable || here;
-                    const status = here
-                      ? "На койке"
-                      : student.placeBlock
-                        ? student.placeBlock
-                        : "Можно селить";
+                    const status = here ? "На койке" : "Можно селить";
+                    const active = draggingId === student.applicationId;
                     return (
-                      <tr key={student.applicationId} className={here ? "student-placed" : canDrag ? "fund-row-draggable" : "fund-row-locked"}>
+                      <tr key={student.applicationId} className={here ? "student-placed fund-row-draggable" : "fund-row-draggable"}>
                         <td
-                          className={`fund-drag-handle ${canDrag ? "" : "disabled"}`}
-                          title={canDrag ? "Перетащите на койку" : student.placeBlock ?? "Нельзя селить"}
-                          draggable={canDrag}
-                          onMouseDown={canDrag ? onDragHandleMouseDown : undefined}
-                          onDragStart={canDrag ? (event: DragEvent) => onDragStart(event, student.applicationId) : undefined}
+                          className={`fund-drag-handle ${active ? "dragging" : ""}`}
+                          title="Зажмите и перетащите на койку"
+                          onPointerDown={(event) => beginDrag(student.applicationId, event)}
                         >
-                          {canDrag ? "⠿" : "—"}
+                          ⠿
                         </td>
                         <td>{student.name}</td>
                         <td>{age == null ? "—" : age}</td>

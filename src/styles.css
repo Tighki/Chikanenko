@@ -404,10 +404,13 @@ tr:hover td { background: rgba(0, 85, 255, 0.06); }
   justify-content: space-between;
   gap: 0.5rem;
   font-size: 0.86rem;
+}
+.bed-person-drag {
   cursor: grab;
   user-select: none;
-  -webkit-user-select: none;
+  touch-action: none;
 }
+.bed-person-drag:active { cursor: grabbing; }
 .linkish {
   border: 0;
   background: transparent;
@@ -436,6 +439,8 @@ tr:hover td { background: rgba(0, 85, 255, 0.06); }
 .fund-students-head h3 { border: 0; background: transparent; display: flex; flex-direction: column; gap: 0.15rem; align-items: flex-start; }
 .fund-students-sub { font-size: 0.72rem; font-weight: 500; color: var(--muted); text-transform: none; letter-spacing: 0; }
 .fund-empty-pad { padding: 1.25rem 1rem; margin: 0; }
+body.fund-pointer-dragging { user-select: none; cursor: grabbing; }
+body.fund-pointer-dragging .fund-drag-handle { cursor: grabbing; }
 .fund-students-head input { width: 9rem; margin-right: 0.55rem; padding: 0.35rem 0.5rem; }
 .fund-table { overflow: auto; border: 0; border-radius: 0; }
 .fund-table table { font-size: 0.8rem; }
@@ -454,6 +459,7 @@ tr:hover td { background: rgba(0, 85, 255, 0.06); }
   touch-action: none;
 }
 .fund-drag-handle:active { cursor: grabbing; }
+.fund-drag-handle.dragging { background: #dbeafe; color: var(--brand); }
 .fund-drag-handle.disabled {
   color: var(--muted);
   cursor: not-allowed;
