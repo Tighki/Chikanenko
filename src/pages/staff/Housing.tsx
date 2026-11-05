@@ -12,7 +12,7 @@ export function HousingPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [building, setBuilding] = useState({ name: "", address: "", gender: "MALE" });
-  const [room, setRoom] = useState({ buildingId: "", number: "", floor: 1, accessible: false, bedCount: 2 });
+  const [room, setRoom] = useState({ buildingId: "", number: "", floor: 1, gender: "MALE" as "MALE" | "FEMALE", accessible: false, bedCount: 2 });
 
   function load() {
     api<{ buildings: Building[] }>("/api/housing").then((data) => {
@@ -72,7 +72,7 @@ export function HousingPage() {
 
   return (
     <div className="stack">
-      <PageHead title="Жилой фонд" text="Корпуса разделены по полу. Доступная среда резервируется для абитуриентов с инвалидностью." />
+      <PageHead title="Жилой фонд" text="Корпус «Общежитие». Комнаты разделены по полу, доступная среда — для студентов с инвалидностью." />
       {error ? <Banner kind="error">{error}</Banner> : null}
       {message ? <Banner kind="ok">{message}</Banner> : null}
       <div className="grid-2">
@@ -93,6 +93,12 @@ export function HousingPage() {
           <Field label="Корпус">
             <select value={room.buildingId} onChange={(event) => setRoom({ ...room, buildingId: event.target.value })}>
               {buildings.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+            </select>
+          </Field>
+          <Field label="Пол комнаты">
+            <select value={room.gender} onChange={(event) => setRoom({ ...room, gender: event.target.value as "MALE" | "FEMALE" })}>
+              <option value="MALE">Мужской</option>
+              <option value="FEMALE">Женский</option>
             </select>
           </Field>
           <div className="grid-form">
