@@ -433,7 +433,9 @@ tr:hover td { background: rgba(0, 85, 255, 0.06); }
   border-bottom: 1px solid var(--line);
   background: var(--field);
 }
-.fund-students-head h3 { border: 0; background: transparent; }
+.fund-students-head h3 { border: 0; background: transparent; display: flex; flex-direction: column; gap: 0.15rem; align-items: flex-start; }
+.fund-students-sub { font-size: 0.72rem; font-weight: 500; color: var(--muted); text-transform: none; letter-spacing: 0; }
+.fund-empty-pad { padding: 1.25rem 1rem; margin: 0; }
 .fund-students-head input { width: 9rem; margin-right: 0.55rem; padding: 0.35rem 0.5rem; }
 .fund-table { overflow: auto; border: 0; border-radius: 0; }
 .fund-table table { font-size: 0.8rem; }

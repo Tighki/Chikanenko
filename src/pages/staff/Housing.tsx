@@ -44,6 +44,8 @@ type Workspace = {
   students: Student[];
 };
 
+const ADMITTED_STATUSES = new Set(["APPROVED", "WAITLIST", "SETTLED"]);
+
 let draftKey = 0;
 function nextKey() {
   draftKey += 1;
@@ -189,10 +191,20 @@ export function HousingPage() {
     .sort((left, right) => left.number.localeCompare(right.number, "ru", { numeric: true }));
   const selectedRoom = roomKey ? rooms.find((room) => room.key === roomKey) ?? null : null;
   const placed = new Set(rooms.flatMap((room) => room.beds.flatMap((bed) => (bed.occupant ? [bed.occupant.applicationId] : []))));
-  const visibleStudents = students.filter((student) => {
-    const text = `${student.name} ${student.faculty} ${student.city}`.toLowerCase();
-    return text.includes(query.trim().toLowerCase());
-  });
+  const visibleStudents = useMemo(() => {
+    if (!selectedRoom) return [];
+    const q = query.trim().toLowerCase();
+    return students.filter((student) => {
+      const inThisRoom = selectedRoom.beds.some((bed) => bed.occupant?.applicationId === student.applicationId);
+      if (!ADMITTED_STATUSES.has(student.status) && !inThisRoom) return false;
+      if (student.gender !== selectedRoom.gender && !inThisRoom) return false;
+      if (q) {
+        const text = `${student.name} ${student.faculty} ${student.city}`.toLowerCase();
+        if (!text.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [students, query, selectedRoom]);
   const buildingName = buildings.find((item) => item.id === buildingId)?.name ?? "Общежитие";
 
   function replaceRoom(next: DraftRoom) {
@@ -414,7 +426,7 @@ export function HousingPage() {
     <div className="stack">
       <PageHead
         title="Жилой фонд"
-        text="Слева выберите этаж и комнату, справа перетащите студента на койку. Структуру меняйте кнопками «+» и панелью ниже, затем нажмите «Сохранить»."
+        text="Выберите комнату — справа появятся только допущенные студенты нужного пола. Перетащите на койку, затем «Сохранить»."
       >
         <div className="row">
           {dirty ? <span className="fund-dirty">Есть несохранённые изменения</span> : null}
@@ -597,10 +609,22 @@ export function HousingPage() {
             }}
           >
             <header className="fund-students-head">
-              <h3>Студенты</h3>
-              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Поиск" />
+              <h3>
+                Студенты
+                {selectedRoom ? (
+                  <span className="fund-students-sub">
+                    {selectedRoom.gender === "MALE" ? "мужская" : "женская"} № {selectedRoom.number}
+                  </span>
+                ) : null}
+              </h3>
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Поиск" disabled={!selectedRoom} />
             </header>
             <div className="table-wrap fund-table">
+              {!selectedRoom ? (
+                <p className="fund-empty fund-empty-pad">Выберите комнату в средней колонке — покажем список для заселения.</p>
+              ) : visibleStudents.length === 0 ? (
+                <p className="fund-empty fund-empty-pad">Нет подходящих студентов (допущены, нужный пол, свободны для этой комнаты).</p>
+              ) : (
               <table>
                 <thead>
                   <tr><th className="fund-drag-col" aria-label="Перетаскивание" /><th>ФИО</th><th>Возраст</th><th>Факультет</th><th>Город</th><th>Статус</th></tr>
@@ -636,6 +660,7 @@ export function HousingPage() {
                   })}
                 </tbody>
               </table>
+              )}
             </div>
           </section>
         </div>
