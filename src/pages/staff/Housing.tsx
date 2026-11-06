@@ -150,7 +150,7 @@ export function HousingPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
-  const [buildingForm, setBuildingForm] = useState({ name: "Общежитие", address: "ул. Студенческая, 1", gender: "MALE" });
+  const [buildingForm, setBuildingForm] = useState({ name: "Общежитие", address: "ул. Студенческая, 1" });
   const selectedRoomRef = useRef<DraftRoom | null>(null);
 
   function applyWorkspace(data: Workspace, preferredId = buildingId) {

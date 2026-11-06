@@ -1,6 +1,6 @@
 # Заселение в общежитие
 
-Фронт дипломной системы. API живёт отдельно: https://github.com/Tighki/Chikanenko-Back
+Фронт системы заселения общежития. API: https://github.com/Tighki/Chikanenko-Back
 
 ## Порты
 

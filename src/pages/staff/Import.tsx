@@ -31,12 +31,12 @@ export function ImportPage() {
 
   return (
     <div className="stack">
-      <PageHead title="Загрузка из файла" text="В тестовом приложении файл заменяет выгрузку из 1С. Колонки: ФИО, Пол, Дата рождения, Город, Регион, Улица, Дом, Квартира, Факультет, Направление, Балл, Категория, Email, Телефон. Новая строка создаёт заявку, совпадение по почте обновляет карточку. По городу считается расстояние до института." />
+      <PageHead title="Загрузка из файла" text="Файл Excel заменяет выгрузку из 1С. Колонки: ФИО, Пол, Дата рождения, Город, Регион, Улица, Дом, Квартира, Факультет, Направление, Балл, Категория, Email, Телефон. Новая строка создаёт заявку, совпадение по почте обновляет карточку. По городу считается расстояние до института." />
       {error ? <Banner kind="error">{error}</Banner> : null}
       <form className="panel-block stack" onSubmit={onSubmit}>
         <input type="file" accept=".xlsx,.xls,.csv" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
         <p className="muted import-samples">
-          Демо-файлы:{" "}
+          Примеры файлов:{" "}
           <a href="/samples/import/import-01-muzhskie.xlsx" download>мужские (6)</a>
           {" · "}
           <a href="/samples/import/import-02-zhenskie.xlsx" download>женские (6)</a>

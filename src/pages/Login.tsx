@@ -7,8 +7,8 @@ import { Banner, Button, Field } from "../components/ui";
 export function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("staff@hostel.local");
-  const [password, setPassword] = useState("Staff123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
 
@@ -39,7 +39,7 @@ export function LoginPage() {
             <li>Алгоритм предлагает места, сотрудник подтверждает заселение.</li>
           </ol>
         </div>
-        <div>Кампания заселения 2026</div>
+        <div>Система заселения общежития</div>
       </aside>
       <section className="auth-panel">
         <form className="panel stack" onSubmit={onSubmit}>
@@ -55,11 +55,6 @@ export function LoginPage() {
             <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" required />
           </Field>
           <Button type="submit" disabled={pending}>{pending ? "Входим…" : "Войти"}</Button>
-          <div className="demo-accounts">
-            <div>Демонстрация на защите</div>
-            <div><code>admin@hostel.local</code> / Admin123</div>
-            <div><code>staff@hostel.local</code> / Staff123</div>
-          </div>
         </form>
       </section>
     </div>
