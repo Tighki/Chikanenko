@@ -32,14 +32,20 @@ export function LoginPage() {
         <div>
           <Logo className="logo logo-hero" />
           <h1>Заселение в общежитие</h1>
-          <p>Сотрудник загружает список студентов файлом, проверяет документы и распределяет свободные койки.</p>
-          <ol>
-            <li>Файл заменяет выгрузку из 1С и создаёт карточки студентов.</li>
-            <li>Сотрудник проверяет документы и допускает заявку к распределению.</li>
-            <li>Алгоритм предлагает места, сотрудник подтверждает заселение.</li>
-          </ol>
+          <p>Загрузка списка, проверка документов и распределение коек.</p>
         </div>
-        <div>Система заселения общежития</div>
+        <dl className="auth-logins">
+          <div>
+            <dt>Администратор</dt>
+            <dd>admin@hostel.local</dd>
+            <dd>Admin123</dd>
+          </div>
+          <div>
+            <dt>Сотрудник</dt>
+            <dd>staff@hostel.local</dd>
+            <dd>Staff123</dd>
+          </div>
+        </dl>
       </aside>
       <section className="auth-panel">
         <form className="panel stack" onSubmit={onSubmit}>
