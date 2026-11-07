@@ -9,7 +9,6 @@ export type SessionUser = {
   fullName: string;
   role: Role;
   phone: string | null;
-  mustChangePassword: boolean;
 };
 
 type AuthState = {

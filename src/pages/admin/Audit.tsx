@@ -21,7 +21,7 @@ export function AuditPage() {
 
   return (
     <div className="stack">
-      <PageHead title="Журнал действий" text="Регистрация, проверка заявок, импорт, автозаселение и ручные назначения." />
+      <PageHead title="Журнал действий" text="Проверка заявок, импорт, автозаселение и рассадка в жилом фонде." />
       <div className="table-wrap">
         <table>
           <thead><tr><th>Когда</th><th>Кто</th><th>Действие</th><th>Объект</th><th>Детали</th></tr></thead>

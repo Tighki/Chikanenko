@@ -5,12 +5,8 @@ import { Banner, Button, Field, PageHead } from "../../components/ui";
 
 type Campaign = {
   name: string;
-  startsAt: string;
-  endsAt: string;
   checkInFrom: string;
   checkInUntil: string;
-  active: boolean;
-  isOpen: boolean;
 };
 
 export function CampaignPage() {
@@ -32,15 +28,12 @@ export function CampaignPage() {
         method: "PUT",
         body: JSON.stringify({
           name: form.name,
-          startsAt: dateInput(form.startsAt),
-          endsAt: dateInput(form.endsAt),
           checkInFrom: dateInput(form.checkInFrom),
           checkInUntil: dateInput(form.checkInUntil),
-          active: form.active,
         }),
       });
       setForm(data.campaign);
-      setMessage("Кампания сохранена");
+      setMessage("Даты заселения сохранены");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Не удалось сохранить");
     }
@@ -50,18 +43,15 @@ export function CampaignPage() {
 
   return (
     <form className="stack" onSubmit={onSubmit}>
-      <PageHead title="Кампания" text={form.isOpen ? "Приём заявок сейчас открыт." : "Приём заявок сейчас закрыт."} />
+      <PageHead title="Кампания" text="Эти даты печатаются в направлении на заселение." />
       {error ? <Banner kind="error">{error}</Banner> : null}
       {message ? <Banner kind="ok">{message}</Banner> : null}
       <div className="panel-block grid-form">
         <Field label="Название"><input className="span-2" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} required /></Field>
-        <Field label="Приём с"><input type="date" value={dateInput(form.startsAt)} onChange={(event) => setForm({ ...form, startsAt: event.target.value })} required /></Field>
-        <Field label="Приём по"><input type="date" value={dateInput(form.endsAt)} onChange={(event) => setForm({ ...form, endsAt: event.target.value })} required /></Field>
         <Field label="Заселение с"><input type="date" value={dateInput(form.checkInFrom)} onChange={(event) => setForm({ ...form, checkInFrom: event.target.value })} required /></Field>
         <Field label="Заселение по"><input type="date" value={dateInput(form.checkInUntil)} onChange={(event) => setForm({ ...form, checkInUntil: event.target.value })} required /></Field>
-        <label className="check"><input type="checkbox" checked={form.active} onChange={(event) => setForm({ ...form, active: event.target.checked })} /> Кампания активна</label>
       </div>
-      <Button type="submit">Сохранить кампанию</Button>
+      <Button type="submit">Сохранить</Button>
     </form>
   );
 }

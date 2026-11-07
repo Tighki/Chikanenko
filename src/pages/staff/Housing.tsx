@@ -100,12 +100,17 @@ function makeRoom(floor: number, number: string, bedCount: number, gender: Gende
   };
 }
 
-function nextRoomNumber(rooms: DraftRoom[]) {
-  const max = rooms.reduce((highest, room) => {
-    const value = Number(room.number);
-    return Number.isInteger(value) ? Math.max(highest, value) : highest;
-  }, 0);
-  return String(max + 1);
+function nextRoomNumber(rooms: DraftRoom[], floorLevel: number) {
+  const used = new Set(rooms.map((room) => room.number));
+  const start = floorLevel * 100 + 1;
+  const end = start + 98;
+  for (let value = start; value <= end; value += 1) {
+    const number = String(value);
+    if (!used.has(number)) return number;
+  }
+  let value = end + 1;
+  while (used.has(String(value))) value += 1;
+  return String(value);
 }
 
 function snapshot(rooms: DraftRoom[]) {
@@ -200,7 +205,6 @@ export function HousingPage() {
       const inThisRoom = selectedRoom.beds.some((bed) => bed.occupant?.applicationId === student.applicationId);
       if (!ADMITTED_STATUSES.has(student.status) && !inThisRoom) return false;
       if (student.gender !== selectedRoom.gender && !inThisRoom) return false;
-      if (!student.placeable && !inThisRoom) return false;
       if (q) {
         const text = `${student.name} ${student.faculty} ${student.city}`.toLowerCase();
         if (!text.includes(q)) return false;
@@ -228,7 +232,7 @@ export function HousingPage() {
   function addFloor() {
     setError("");
     const nextLevel = floors.length ? Math.max(...floors) + 1 : 1;
-    const room = makeRoom(nextLevel, nextRoomNumber(rooms), 2);
+    const room = makeRoom(nextLevel, nextRoomNumber(rooms, nextLevel), 2);
     setRooms([...rooms, room]);
     setFloor(nextLevel);
     setRoomKey(room.key);
@@ -255,7 +259,7 @@ export function HousingPage() {
     const template = selectedRoom && selectedRoom.floor === onLevel ? selectedRoom : floorRooms[0];
     const gender = template?.gender ?? "MALE";
     const bedCount = template?.beds.length ?? 2;
-    const room = makeRoom(onLevel, nextRoomNumber(rooms), bedCount, gender);
+    const room = makeRoom(onLevel, nextRoomNumber(rooms, onLevel), bedCount, gender);
     setRooms([...rooms, room]);
     setFloor(onLevel);
     setRoomKey(room.key);
@@ -477,7 +481,8 @@ export function HousingPage() {
                         className={`fund-item ${level === floor && !roomKey ? "active" : level === floor ? "active-soft" : ""}`}
                         onClick={() => {
                           setFloor(level);
-                          setRoomKey("");
+                          const onFloor = rooms.filter((room) => room.floor === level);
+                          if (!onFloor.some((room) => room.key === roomKey)) setRoomKey(onFloor[0]?.key ?? "");
                         }}
                       >
                         <b>Этаж {level}</b>
@@ -622,7 +627,7 @@ export function HousingPage() {
               {!selectedRoom ? (
                 <p className="fund-empty fund-empty-pad">Выберите комнату в средней колонке — покажем список для заселения.</p>
               ) : visibleStudents.length === 0 ? (
-                <p className="fund-empty fund-empty-pad">Нет подходящих студентов (допущены, нужный пол, свободны для этой комнаты).</p>
+                <p className="fund-empty fund-empty-pad">Нет допущенных студентов этого пола.</p>
               ) : (
               <table>
                 <thead>
@@ -632,14 +637,15 @@ export function HousingPage() {
                   {visibleStudents.map((student) => {
                     const age = fullYears(student.birthDate);
                     const here = placed.has(student.applicationId);
-                    const status = here ? "На койке" : "Можно селить";
+                    const canDrag = student.placeable || here;
+                    const status = here ? "На койке" : student.placeable ? "Можно селить" : student.placeBlock || "Пока нельзя селить";
                     const active = draggingId === student.applicationId;
                     return (
                       <tr key={student.applicationId} className={`${here ? "student-placed fund-row-draggable" : "fund-row-draggable"}${active ? " fund-row-source" : ""}`}>
                         <td
-                          className={`fund-drag-handle ${active ? "dragging" : ""}`}
-                          title="Зажмите и перетащите на койку"
-                          onPointerDown={(event) => beginDrag(student.applicationId, event)}
+                          className={`fund-drag-handle ${active ? "dragging" : ""} ${canDrag ? "" : "disabled"}`}
+                          title={canDrag ? "Зажмите и перетащите на койку" : status}
+                          onPointerDown={(event) => { if (canDrag) beginDrag(student.applicationId, event); }}
                         >
                           ⠿
                         </td>

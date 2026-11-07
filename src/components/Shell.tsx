@@ -1,8 +1,6 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
 import { homeFor, useAuth } from "../auth";
 import { ROLE_LABELS } from "../labels";
-import { api } from "../api";
 import { Logo } from "./Logo";
 import { Button } from "./ui";
 
@@ -11,7 +9,6 @@ const staffLinks = [
   ["/staff/applications", "Заявки"],
   ["/staff/housing", "Жилой фонд"],
   ["/staff/settlement", "Автозаселение"],
-  ["/staff/assignments", "Назначения"],
   ["/staff/import", "Импорт"],
   ["/staff/report", "Отчёт"],
 ];
@@ -26,14 +23,7 @@ const adminLinks = [
 export function Shell({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [unread, setUnread] = useState(0);
   const links = staffLinks;
-
-  useEffect(() => {
-    api<{ unread: number }>("/api/notifications")
-      .then((data) => setUnread(data.unread))
-      .catch(() => setUnread(0));
-  }, [user?.id]);
 
   if (!user) return null;
 
@@ -52,7 +42,6 @@ export function Shell({ children }: { children: React.ReactNode }) {
               {label}
             </NavLink>
           ))}
-          <NavLink to="/staff/notifications">Уведомления{unread > 0 ? ` ${unread}` : ""}</NavLink>
           {user.role === "ADMIN"
             ? adminLinks.map(([to, label]) => (
                 <NavLink key={to} to={to}>
